@@ -1,8 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { Search, Menu, CircleQuestionMark, Bell } from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const { data: session } = useSession();
@@ -22,10 +31,11 @@ const Navbar = () => {
         <div className="border-gray-1 flex flex-1 items-center justify-between rounded-full border px-4 py-2 shadow-sm">
           <div className="flex items-center gap-x-2">
             <Search size={16} strokeWidth={1} />
-            <p className="text-gray-2 text-xs">Search...</p>
+
+            <p className="text-gray-2 text-xs font-light">Search...</p>
           </div>
 
-          <p className="text-gray-2 text-sm">ctrl K</p>
+          <p className="text-gray-2 text-sm opacity-80">ctrl K</p>
         </div>
 
         {/* The rest */}
@@ -37,20 +47,27 @@ const Navbar = () => {
           <div className="border-gray-1 hover:bg-gray-1 rounded-full border p-2 shadow-sm">
             <Bell size={15} strokeWidth={1.5} />
           </div>
-          <div>
-            {session?.user?.image ? (
-              <Image
-                src={session.user.image}
-                alt={session.user.name ?? "User"}
-                width={40}
-                height={40}
-                className="rounded-full object-cover"
-                style={{ borderRadius: "9999px" }}
-              />
-            ) : (
-              <div className="h-7 w-7 rounded-full bg-gray-300" />
-            )}
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="cursor-pointer">
+              {session?.user?.image ? (
+                <Image
+                  src={session.user.image}
+                  alt={session.user.name ?? "User"}
+                  width={30}
+                  height={30}
+                  className="rounded-full object-cover"
+                  style={{ borderRadius: "9999px" }}
+                />
+              ) : (
+                <div className="h-7 w-7 rounded-full bg-gray-300" />
+              )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>
+                <button onClick={() => signOut()}>Sign Out</button>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>

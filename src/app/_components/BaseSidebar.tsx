@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-export default function Sidebar() {
+export default function BaseSidebar() {
   return (
     <div className="border-gray-1 flex w-75 flex-col justify-between border-r px-3 pt-3 pb-5">
       {/* Top section */}
