@@ -1,88 +1,62 @@
 "use client";
 
-import {
-  Home,
-  Star,
-  ChevronDown,
-  ChevronRight,
-  Share2,
-  Users,
-  Plus,
-  BookOpen,
-  Package,
-  Upload,
-} from "lucide-react";
+import { HelpCircle, Bell } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 export default function BaseSidebar() {
+  const { data: session } = useSession();
+
   return (
-    <div className="border-gray-1 flex w-75 flex-col justify-between border-r px-3 pt-3 pb-5">
+    <div className="border-gray-1 flex flex-col justify-between border-r px-3 pt-4 pb-5">
       {/* Top section */}
-      <div className="space-y-3">
-        {/* Home */}
-        <div className="flex items-center gap-2 rounded-md bg-gray-100 p-2 px-3 font-medium">
-          <Home size={18} strokeWidth={1.5} />
-          <span>Home</span>
-        </div>
-
-        {/* Starred */}
-        <div className="flex flex-col gap-y-2">
-          <div className="flex items-center justify-between px-3 py-1 text-sm font-medium text-black">
-            <div className="flex items-center gap-2">
-              <Star size={16} strokeWidth={1.5} />
-              <span>Starred</span>
-            </div>
-            <ChevronDown size={14} strokeWidth={1.5} />
-          </div>
-          <div className="text-gray-2 flex items-center gap-x-2 pt-1 pl-2 text-[11px]">
-            <div className="border-gray-1 rounded-sm border p-2 px-3">
-              <Star size={14} strokeWidth={1.5} />
-            </div>
-            <p>
-              Your starred bases, interfaces, and workspaces will appear here
-            </p>
-          </div>
-        </div>
-
-        {/* Shared */}
-        <div className="flex items-center gap-2 px-3 py-1 text-sm font-medium text-black">
-          <Share2 size={16} strokeWidth={1.5} />
-          <span>Shared</span>
-        </div>
-
-        {/* Workspaces */}
-        <div className="flex items-center justify-between px-3 py-1 text-sm font-medium text-black">
-          <div className="flex items-center gap-2">
-            <Users size={16} strokeWidth={1.5} />
-            <span>Workspaces</span>
-          </div>
-          <div className="flex items-center gap-x-3">
-            <Plus size={16} strokeWidth={1.5} />
-            <ChevronRight size={14} strokeWidth={1.5} />
-          </div>
-        </div>
+      <div className="flex items-center justify-center">
+        <Image src="/airtable.svg" alt="Airtable logo" width={22} height={22} />
       </div>
 
       {/* Bottom section */}
-      <div className="text-gray-4 flex flex-col gap-y-4 border-t border-gray-200 pt-4 text-xs">
-        <Link href="#" className="flex items-center gap-x-1 px-2">
-          <BookOpen size={16} strokeWidth={1.5} />
-          Templates and apps
+      <div className="text-gray-4 flex flex-col gap-y-3 pt-4 text-xs">
+        <Link
+          href="#"
+          className="hover:bg-gray-1 flex items-center gap-x-1 rounded-full px-2 py-2"
+        >
+          <HelpCircle size={16} strokeWidth={1.5} />
         </Link>
-        <Link href="#" className="flex items-center gap-x-1 px-2">
-          <Package size={16} strokeWidth={1.5} />
-          Marketplace
+        <Link
+          href="#"
+          className="hover:bg-gray-1 flex items-center gap-x-1 rounded-full px-2 py-2"
+        >
+          <Bell size={16} strokeWidth={1.5} />
         </Link>
 
-        <Link href="#" className="flex items-center gap-x-1 px-2">
-          <Upload size={16} strokeWidth={1.5} />
-          Import
-        </Link>
-        {/* Create button */}
-        <button className="bg-blue-1 mt-2 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 font-semibold text-white shadow hover:cursor-pointer hover:bg-blue-700">
-          <Plus size={16} strokeWidth={1.5} />
-          Create
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="cursor-pointer">
+            {session?.user?.image ? (
+              <Image
+                src={session.user.image}
+                alt={session.user.name ?? "User"}
+                width={30}
+                height={30}
+                className="rounded-full object-cover"
+                style={{ borderRadius: "9999px" }}
+              />
+            ) : (
+              <div className="h-7 w-7 rounded-full bg-gray-300" />
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>
+              <button onClick={() => signOut()}>Sign Out</button>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

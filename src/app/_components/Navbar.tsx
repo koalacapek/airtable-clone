@@ -8,8 +8,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 
@@ -24,6 +22,7 @@ const Navbar = () => {
             size={20}
             className="text-gray-2 ursor-pointer opacity-50 hover:text-black hover:opacity-70"
           />
+
           <Image src="/logo.png" alt="Airtable logo" width={102} height={60} />
         </div>
 
