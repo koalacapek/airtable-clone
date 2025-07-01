@@ -12,14 +12,13 @@ import {
   Package,
   Upload,
 } from "lucide-react";
-import { useSession } from "next-auth/react";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import Spinner from "./Spinner";
 
 export default function Sidebar() {
-  const session = useSession();
   const router = useRouter();
 
   const { mutate, isPending } = api.base.create.useMutation({
