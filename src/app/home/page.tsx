@@ -1,6 +1,6 @@
 const HomePage = () => {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-100">
       <p className="text-2xl">Welcome to the T3 App!</p>
       <p className="text-lg">
         This is a simple home page for your T3 application.

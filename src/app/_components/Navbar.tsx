@@ -9,7 +9,7 @@ const Navbar = () => {
 
   return (
     <div>
-      <div className="border-gray-1 flex w-screen items-center justify-between border px-3 py-2 shadow-md">
+      <div className="border-gray-1 flex w-screen items-center justify-between border px-3 py-2">
         <div className="flex flex-2 items-center gap-x-5">
           <Menu
             size={20}
@@ -19,7 +19,7 @@ const Navbar = () => {
         </div>
 
         {/* Search bar  */}
-        <div className="border-gray-1 flex flex-1 items-center justify-between rounded-full border px-4 py-2 shadow-md">
+        <div className="border-gray-1 flex flex-1 items-center justify-between rounded-full border px-4 py-2 shadow-sm">
           <div className="flex items-center gap-x-2">
             <Search size={16} strokeWidth={1} />
             <p className="text-gray-2 text-xs">Search...</p>
