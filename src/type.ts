@@ -8,3 +8,7 @@ export interface IBase {
   createdAt: Date;
   userId: string;
 }
+
+export interface ISlugProp {
+  params: Promise<{ slug: string }>;
+}

@@ -1,24 +1,19 @@
 // app/base/[slug]/page.tsx
-import { auth } from "~/server/auth"; // adjust path if needed
+import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
+import type { ISlugProp } from "~/type";
 
-interface PageProps {
-  params: {
-    slug: string;
-  };
-}
-
-export default async function BaseSlugPage({ params }: PageProps) {
+export default async function BaseSlugPage(params: ISlugProp) {
   const session = await auth();
+  const { slug } = await params.params;
 
   if (!session) {
-    return redirect("/sign-in"); // or your custom sign-in route
+    redirect("/sign-in");
   }
 
   return (
     <main className="p-6">
-      <h1 className="text-2xl font-bold">Base: {params.slug}</h1>
-      {/* Render your actual base content here */}
+      <h1 className="text-2xl font-bold">Base: {slug}</h1>
     </main>
   );
 }
