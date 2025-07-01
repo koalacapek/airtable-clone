@@ -1,17 +1,46 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import BaseCard from "../_components/BaseCard";
+import { useQueryClient } from "@tanstack/react-query";
 
 const HomePage = () => {
   const session = useSession();
-  if (!session) redirect("/");
+  const router = useRouter();
+  if (!session) router.push("/sign-in");
 
   const { data, isLoading } = api.base.getAll.useQuery(undefined, {
     enabled: !!session.data?.user,
     refetchOnWindowFocus: false,
+  });
+
+  const utils = api.useUtils();
+
+  const { mutate: deleteBase } = api.base.delete.useMutation({
+    onMutate: async ({ id }) => {
+      await utils.base.getAll.cancel();
+
+      const prevData = utils.base.getAll.getData();
+
+      utils.base.getAll.setData(undefined, (old) =>
+        old?.filter((base) => base.id !== id),
+      );
+
+      return { prevData };
+    },
+
+    onError: (_err, _input, context) => {
+      if (context?.prevData) {
+        utils.base.getAll.setData(undefined, context.prevData);
+      }
+    },
+
+    onSettled: async () => {
+      await utils.base.getAll.invalidate();
+      console.log(";; Base deleted successfully");
+    },
   });
 
   return (
@@ -29,6 +58,7 @@ const HomePage = () => {
               name={base.name}
               createdAt={base.createdAt}
               key={base.id}
+              handleDelete={(id) => deleteBase({ id })}
             />
           ))}
         </div>

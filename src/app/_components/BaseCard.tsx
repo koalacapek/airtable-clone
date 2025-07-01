@@ -1,6 +1,6 @@
 "use client";
 
-import type { IBase } from "~/type";
+import type { IBaseCardProps } from "~/type";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,7 @@ import { api } from "~/trpc/react";
 
 dayjs.extend(relativeTime);
 
-const BaseCard = (base: IBase) => {
+const BaseCard = (base: IBaseCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState(base.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +38,14 @@ const BaseCard = (base: IBase) => {
       console.error("Failed to rename base:", error);
     },
   });
+
+  // const { mutate: deleteBase } = api.base.delete.useMutation({
+  //   onSuccess: () => {
+  //     console.log("Base deleted successfully");
+  //     void api.useUtils().base.getAll.invalidate();
+  //     // base.handleDelete(base.id);
+  //   },
+  // });
 
   const handleRename = () => {
     if (newName.trim() !== base.name) {
@@ -97,7 +105,13 @@ const BaseCard = (base: IBase) => {
             </button>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <button className="flex w-full items-center gap-x-3">
+            <button
+              className="flex w-full items-center gap-x-3"
+              onClick={(e) => {
+                e.stopPropagation();
+                base.handleDelete(base.id);
+              }}
+            >
               <Trash2 size={12} strokeWidth={1.5} />
               <p className="text-xs">Delete</p>
             </button>
