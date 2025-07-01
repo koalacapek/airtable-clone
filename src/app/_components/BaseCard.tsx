@@ -30,6 +30,31 @@ const BaseCard = (base: IBaseCardProps) => {
     }
   }, [isEditing]);
 
+  const { mutate: deleteBase } = api.base.delete.useMutation({
+    onMutate: async ({ id }) => {
+      await utils.base.getAll.cancel();
+
+      const prevData = utils.base.getAll.getData();
+
+      utils.base.getAll.setData(undefined, (old) =>
+        old?.filter((base) => base.id !== id),
+      );
+
+      return { prevData };
+    },
+
+    onError: (_err, _input, context) => {
+      if (context?.prevData) {
+        utils.base.getAll.setData(undefined, context.prevData);
+      }
+    },
+
+    onSettled: async () => {
+      await utils.base.getAll.invalidate();
+      console.log(";; Base deleted successfully");
+    },
+  });
+
   const { mutate: renameBase } = api.base.rename.useMutation({
     onMutate: async ({ id, name }) => {
       // Optimistically update the base name
@@ -116,7 +141,7 @@ const BaseCard = (base: IBaseCardProps) => {
               className="flex w-full items-center gap-x-3"
               onClick={(e) => {
                 e.stopPropagation();
-                base.handleDelete(base.id);
+                deleteBase({ id: base.id });
               }}
             >
               <Trash2 size={12} strokeWidth={1.5} />

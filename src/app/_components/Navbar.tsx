@@ -10,9 +10,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 const Navbar = () => {
   const { data: session } = useSession();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/sign-in");
+  };
 
   return (
     <div>
@@ -63,7 +70,7 @@ const Navbar = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem>
-                <button onClick={() => signOut()}>Sign Out</button>
+                <button onClick={handleLogout}>Sign Out</button>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

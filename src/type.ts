@@ -1,5 +1,5 @@
 export interface IBaseCardProps extends IBase {
-  handleDelete: (id: string) => void;
+  handleDelete?: (id: string) => void;
 }
 
 export interface IBase {
