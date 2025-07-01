@@ -12,9 +12,24 @@ import {
   Package,
   Upload,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { api } from "~/trpc/react";
+import Spinner from "./Spinner";
 
 export default function Sidebar() {
+  const session = useSession();
+  const router = useRouter();
+
+  const { mutate, isPending } = api.base.create.useMutation({
+    onSuccess: (newBase) => {
+      console.log("Base created:", newBase);
+      // e.g., redirect or refetch
+      router.push(`/base/${newBase.id}`);
+    },
+  });
+
   return (
     <div className="border-gray-1 flex w-75 flex-col justify-between border-r px-3 pt-3 pb-5">
       {/* Top section */}
@@ -79,10 +94,24 @@ export default function Sidebar() {
           Import
         </Link>
         {/* Create button */}
-        <button className="bg-blue-1 mt-2 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 font-semibold text-white shadow hover:cursor-pointer hover:bg-blue-700">
-          <Plus size={16} strokeWidth={1.5} />
-          Create
-        </button>
+
+        {!isPending ? (
+          <button
+            onClick={() => mutate({})}
+            className="bg-blue-1 mt-2 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 font-semibold text-white shadow hover:cursor-pointer hover:bg-blue-700"
+          >
+            <Plus size={16} strokeWidth={1.5} />
+            Create
+          </button>
+        ) : (
+          <button
+            disabled
+            className="bg-blue-1 mt-2 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 font-semibold text-white opacity-50 shadow"
+          >
+            <Spinner />
+            Creating...
+          </button>
+        )}
       </div>
     </div>
   );

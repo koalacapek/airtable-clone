@@ -14,16 +14,68 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+model Base {
+  id        String   @id @default(cuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  tables    Table[]
+  createdAt DateTime @default(now())
 
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
+}
 
-    @@index([name])
+model Table {
+  id        String   @id @default(cuid())
+  name      String
+  baseId    String
+  base      Base     @relation(fields: [baseId], references: [id])
+  columns   Column[]
+  rows      Row[]
+  views     View[]
+  createdAt DateTime @default(now())
+}
+
+model Column {
+  id        String   @id @default(cuid())
+  name      String
+  type      ColumnType
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id])
+  cells     Cell[]
+  createdAt DateTime @default(now())
+}
+
+enum ColumnType {
+  TEXT
+  NUMBER
+}
+
+model Row {
+  id        String   @id @default(cuid())
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id])
+  cells     Cell[]
+  createdAt DateTime @default(now())
+}
+
+model Cell {
+  id        String   @id @default(cuid())
+  rowId     String
+  columnId  String
+  value     String   // Store all as string and cast on frontend
+  row       Row      @relation(fields: [rowId], references: [id])
+  column    Column   @relation(fields: [columnId], references: [id])
+}
+
+model View {
+  id        String   @id @default(cuid())
+  name      String
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id])
+  filters   Json     // store filter config as JSON
+  sort      Json     // store sort config as JSON
+  hiddenColumns Json // column ids hidden
+  createdAt DateTime @default(now())
 }
 
 // Necessary for Next auth
@@ -62,7 +114,9 @@ model User {
     image         String?
     accounts      Account[]
     sessions      Session[]
-    posts         Post[]
+    bases         Base[]
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime  @updatedAt
 }
 
 model VerificationToken {
@@ -72,3 +126,4 @@ model VerificationToken {
 
     @@unique([identifier, token])
 }
+
