@@ -20,6 +20,7 @@ const BaseCard = (base: IBaseCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState(base.name);
   const inputRef = useRef<HTMLInputElement>(null);
+  const utils = api.useUtils();
 
   useEffect(() => {
     if (isEditing) {
@@ -30,22 +31,28 @@ const BaseCard = (base: IBaseCardProps) => {
   }, [isEditing]);
 
   const { mutate: renameBase } = api.base.rename.useMutation({
-    onSuccess: (updatedBase) => {
-      setIsEditing(false);
-      setNewName(updatedBase.name);
+    onMutate: async ({ id, name }) => {
+      // Optimistically update the base name
+      await utils.base.getAll.cancel();
+      const previousBases = utils.base.getAll.getData();
+
+      utils.base.getAll.setData(undefined, (old) =>
+        old?.map((b) => (b.id === id ? { ...b, name: name!.trim() } : b)),
+      );
+
+      return { previousBases };
     },
+
     onError: (error) => {
       console.error("Failed to rename base:", error);
+      // Rollback to previous bases if rename fails
+      utils.base.getAll.setData(undefined, (previousBases) => previousBases);
+    },
+    onSettled: async () => {
+      await utils.base.getAll.invalidate();
+      setIsEditing(false);
     },
   });
-
-  // const { mutate: deleteBase } = api.base.delete.useMutation({
-  //   onSuccess: () => {
-  //     console.log("Base deleted successfully");
-  //     void api.useUtils().base.getAll.invalidate();
-  //     // base.handleDelete(base.id);
-  //   },
-  // });
 
   const handleRename = () => {
     if (newName.trim() !== base.name) {

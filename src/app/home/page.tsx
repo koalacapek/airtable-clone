@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import BaseCard from "../_components/BaseCard";
-import { useQueryClient } from "@tanstack/react-query";
 
 const HomePage = () => {
   const session = useSession();
