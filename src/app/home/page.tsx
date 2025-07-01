@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { api } from "~/trpc/react";
+import BaseCard from "../_components/BaseCard";
 
 const HomePage = () => {
   const session = useSession();
@@ -20,14 +21,15 @@ const HomePage = () => {
       </div>
 
       {data && data.length > 0 ? (
-        <div className="flex flex-col gap-4 p-10">
+        <div className="grid grid-cols-1 gap-4 p-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {data.map((base) => (
-            <div
+            <BaseCard
+              id={base.id}
+              userId={base.userId}
+              name={base.name}
+              createdAt={base.createdAt}
               key={base.id}
-              className="rounded-lg bg-white p-5 shadow transition-shadow hover:shadow-lg"
-            >
-              <h2 className="text-xl font-semibold">{base.name}</h2>
-            </div>
+            />
           ))}
         </div>
       ) : isLoading ? (
