@@ -1,10 +1,17 @@
-import { redirect } from "next/navigation";
-import { auth } from "~/server/auth";
+"use client";
 
-const HomePage = async () => {
-  const session = await auth();
+import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
+import { api } from "~/trpc/react";
+
+const HomePage = () => {
+  const session = useSession();
   if (!session) redirect("/");
-  console.log(session);
+
+  const { data, isLoading } = api.base.getAll.useQuery(undefined, {
+    enabled: !!session.data?.user,
+    refetchOnWindowFocus: false,
+  });
 
   return (
     <main className="flex h-full flex-col bg-gray-100">
@@ -12,10 +19,26 @@ const HomePage = async () => {
         <h1>Home</h1>
       </div>
 
-      <p className="text-2xl">Welcome to the T3 App!</p>
-      <p className="text-lg">
-        This is a simple home page for your T3 application.
-      </p>
+      {data && data.length > 0 ? (
+        <div className="flex flex-col gap-4 p-10">
+          {data.map((base) => (
+            <div
+              key={base.id}
+              className="rounded-lg bg-white p-5 shadow transition-shadow hover:shadow-lg"
+            >
+              <h2 className="text-xl font-semibold">{base.name}</h2>
+            </div>
+          ))}
+        </div>
+      ) : isLoading ? (
+        <div className="flex h-full items-center justify-center">
+          <p>Loading...</p>
+        </div>
+      ) : (
+        <div className="flex h-full items-center justify-center">
+          <p>No bases found. Create a new base to get started!</p>
+        </div>
+      )}
     </main>
   );
 };
