@@ -3,7 +3,8 @@
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useState } from "react";
 import { api } from "~/trpc/react"; // tRPC hook
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import Spinner from "./Spinner";
 
 type TableTabProps = {
   baseId: string;
@@ -51,30 +52,38 @@ const TableView = ({ baseId }: TableTabProps) => {
     createTable({ baseId });
   };
 
-  if (isLoading) return <div>Loading tables...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center p-10">
+        <Spinner size={24} />
+      </div>
+    );
+  }
 
   return (
-    <Tabs value={activeTab ?? tables?.[0]?.id} onValueChange={setActiveTab}>
-      <TabsList className="flex space-x-4 overflow-x-auto border-b bg-transparent px-2">
-        {tables?.map((table) => (
-          <TabsTrigger
-            key={table.id}
-            value={table.id}
-            className="rounded-none border-b-2 border-transparent px-4 pt-3 pb-2 text-sm font-medium data-[state=active]:border-[#8B3C2C] data-[state=active]:text-black"
-          >
-            {table.name}
-          </TabsTrigger>
-        ))}
+    <div className="flex h-full">
+      <Tabs value={activeTab ?? tables?.[0]?.id} onValueChange={setActiveTab}>
+        <TabsList className="flex space-x-4 overflow-x-auto border-b bg-transparent px-2">
+          {tables?.map((table) => (
+            <TabsTrigger
+              key={table.id}
+              value={table.id}
+              className="rounded-none border-b-2 border-transparent px-4 pt-3 pb-2 text-sm font-medium data-[state=active]:border-[#8B3C2C] data-[state=active]:text-black"
+            >
+              {table.name}
+            </TabsTrigger>
+          ))}
 
-        <button
-          onClick={handleAddTable}
-          className="ml-2 flex items-center gap-1 px-3 text-sm whitespace-nowrap text-gray-500 hover:text-black disabled:opacity-50"
-        >
-          <Plus size={14} />
-          Add Table
-        </button>
-      </TabsList>
-    </Tabs>
+          <button
+            onClick={handleAddTable}
+            className="ml-2 flex items-center gap-1 px-3 text-sm whitespace-nowrap text-gray-500 hover:text-black disabled:opacity-50"
+          >
+            <Plus size={14} />
+            Add Table
+          </button>
+        </TabsList>
+      </Tabs>
+    </div>
   );
 };
 

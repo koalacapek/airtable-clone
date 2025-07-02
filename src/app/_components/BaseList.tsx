@@ -3,6 +3,7 @@
 
 import { api } from "~/trpc/react";
 import BaseCard from "./BaseCard";
+import Spinner from "./Spinner";
 
 const BaseList = () => {
   const utils = api.useUtils();
@@ -35,7 +36,7 @@ const BaseList = () => {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center p-10">
-        <p className="text-lg font-medium text-gray-500">Loading bases...</p>
+        <Spinner size={24} />
       </div>
     );
   }

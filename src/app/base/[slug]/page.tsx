@@ -13,7 +13,7 @@ const BaseSlugPage = async (params: ISlugProp) => {
   }
 
   return (
-    <main className="p-6">
+    <main className="h-full">
       <TableView baseId={id} />
     </main>
   );
