@@ -2,7 +2,6 @@
 import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
 import type { ISlugProp } from "~/type";
-import TableTabs from "~/app/_components/TableTabs";
 import BaseContent from "~/app/_components/BaseContent";
 
 const BaseSlugPage = async (params: ISlugProp) => {

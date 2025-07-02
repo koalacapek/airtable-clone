@@ -28,7 +28,7 @@ export default function Sidebar() {
       void utils.base.getAll.invalidate(); // Invalidate the cache to refetch bases
       // e.g., redirect or refetch
       void router.push(
-        `/base/${newBase.id}?name=${encodeURIComponent(newBase.name)}`,
+        `/base/${newBase.id}?name=${encodeURIComponent(newBase.name)}}`,
       );
     },
   });

@@ -34,6 +34,48 @@ export const baseRouter = createTRPCRouter({
         },
       });
 
+      const table = base.tables[0];
+      if (!table) throw new Error("Failed to create default table");
+
+      // 2️⃣ Create default columns
+      const defaultColumns = [
+        { name: "Name", type: "TEXT" as const, tableId: table.id },
+        { name: "Age", type: "NUMBER" as const, tableId: table.id },
+      ];
+
+      await ctx.db.column.createMany({
+        data: defaultColumns,
+      });
+
+      // 3️⃣ Refetch columns to get their IDs (createMany doesn't return records)
+      const columns = await ctx.db.column.findMany({
+        where: { tableId: table.id },
+      });
+
+      const nameCol = columns.find((c) => c.name === "Name");
+      const ageCol = columns.find((c) => c.name === "Age");
+
+      if (!nameCol || !ageCol) throw new Error("Default columns not found");
+
+      // 4️⃣ Create 1 row with 2 cells
+      await ctx.db.row.create({
+        data: {
+          tableId: table.id,
+          cells: {
+            create: [
+              {
+                columnId: nameCol.id,
+                value: "John Doe",
+              },
+              {
+                columnId: ageCol.id,
+                value: "30",
+              },
+            ],
+          },
+        },
+      });
+
       return base;
     }),
 

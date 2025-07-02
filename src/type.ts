@@ -18,3 +18,8 @@ export interface ITableTabProps {
   active: string | null;
   setActive: React.Dispatch<React.SetStateAction<string | null>>;
 }
+
+export interface TableRow {
+  id: string;
+  [key: string]: string; // dynamic columns like Name, Age, etc.
+}

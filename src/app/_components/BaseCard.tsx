@@ -97,8 +97,8 @@ const BaseCard = (base: IBaseCardProps) => {
         );
       }}
     >
-      <div className="rounded-lg border bg-black p-4 text-white">
-        {base.name[0]?.toUpperCase() + base.name.slice(1, 2)}
+      <div className="flex min-w-14 justify-center rounded-lg border bg-black p-4 text-white">
+        <h1>{base.name[0]?.toUpperCase() + base.name.slice(1, 2)}</h1>
       </div>
       <div className="flex flex-col gap-y-2">
         {isEditing ? (

@@ -8,12 +8,12 @@ import {
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import type { Person } from "./BaseContent";
+import type { TableRow } from "~/type";
 
 type TableProps = {
   // Mock data for now
-  data: Person[];
-  columns: ColumnDef<Person>[];
+  data: TableRow[];
+  columns: ColumnDef<TableRow>[];
 };
 
 const Table = ({ data, columns }: TableProps) => {
@@ -44,7 +44,7 @@ const Table = ({ data, columns }: TableProps) => {
           {table.getRowModel().rows.map((row) => (
             <tr key={row.id}>
               {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="border p-2">
+                <td key={cell.id} className="border p-2 hover:bg-gray-100">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}
