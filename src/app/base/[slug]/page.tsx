@@ -2,7 +2,8 @@
 import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
 import type { ISlugProp } from "~/type";
-import TableView from "~/app/_components/TableView";
+import TableTabs from "~/app/_components/TableTabs";
+import BaseContent from "~/app/_components/BaseContent";
 
 const BaseSlugPage = async (params: ISlugProp) => {
   const session = await auth();
@@ -14,7 +15,7 @@ const BaseSlugPage = async (params: ISlugProp) => {
 
   return (
     <main className="h-full w-full">
-      <TableView baseId={id} />
+      <BaseContent baseId={id} />
     </main>
   );
 };

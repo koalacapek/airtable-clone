@@ -12,3 +12,9 @@ export interface IBase {
 export interface ISlugProp {
   params: Promise<{ slug: string }>;
 }
+
+export interface ITableTabProps {
+  baseId: string;
+  active: string | null;
+  setActive: React.Dispatch<React.SetStateAction<string | null>>;
+}

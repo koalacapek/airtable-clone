@@ -1,17 +1,12 @@
 "use client";
 
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { useState } from "react";
 import { api } from "~/trpc/react"; // tRPC hook
 import { Plus } from "lucide-react";
 import Spinner from "./Spinner";
+import type { ITableTabProps } from "~/type";
 
-type TableTabProps = {
-  baseId: string;
-};
-
-const TableView = ({ baseId }: TableTabProps) => {
-  const [activeTab, setActiveTab] = useState<string | null>(null);
+const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
   const utils = api.useUtils();
 
   // Fetch tables
@@ -61,8 +56,8 @@ const TableView = ({ baseId }: TableTabProps) => {
   }
 
   return (
-    <div className="h-full w-full">
-      <Tabs value={activeTab ?? tables?.[0]?.id} onValueChange={setActiveTab}>
+    <div className="w-full">
+      <Tabs value={active ?? tables?.[0]?.id} onValueChange={setActive}>
         <TabsList className="bg-orange-1 flex w-full justify-start overflow-x-auto rounded-none p-0">
           {tables?.map((table) => (
             <TabsTrigger
@@ -86,4 +81,4 @@ const TableView = ({ baseId }: TableTabProps) => {
   );
 };
 
-export default TableView;
+export default TableTabs;
