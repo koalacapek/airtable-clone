@@ -51,7 +51,6 @@ const BaseCard = (base: IBaseCardProps) => {
 
     onSettled: async () => {
       await utils.base.getAll.invalidate();
-      console.log(";; Base deleted successfully");
     },
   });
 
@@ -93,7 +92,9 @@ const BaseCard = (base: IBaseCardProps) => {
       key={base.id}
       className="group flex items-center gap-x-3 rounded-lg bg-white p-5 shadow transition-shadow hover:cursor-pointer hover:shadow-lg"
       onClick={() => {
-        void router.push(`/base/${base.id}`);
+        void router.push(
+          `/base/${base.id}?name=${encodeURIComponent(base.name)}`,
+        );
       }}
     >
       <div className="rounded-lg border bg-black p-4 text-white">

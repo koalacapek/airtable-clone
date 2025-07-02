@@ -1,8 +1,7 @@
-import BaseSidebar from "../_components/BaseSidebar";
-import Navbar from "../_components/Navbar";
-import Sidebar from "../_components/Sidebar";
+import BaseNavbar from "~/app/_components/BaseNavbar";
+import BaseSidebar from "~/app/_components/BaseSidebar";
 
-export default function HomeLayout({
+export default async function HomeLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -11,7 +10,7 @@ export default function HomeLayout({
     <div className="flex h-screen">
       <BaseSidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
-        <Navbar />
+        <BaseNavbar />
         <main className="flex-1 overflow-y-auto bg-white">{children}</main>
       </div>
     </div>
