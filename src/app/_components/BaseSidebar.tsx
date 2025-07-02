@@ -1,6 +1,6 @@
 "use client";
 
-import { HelpCircle, Bell } from "lucide-react";
+import { HelpCircle, Bell, LogOut } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -53,7 +53,13 @@ export default function BaseSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem>
-              <button onClick={() => signOut()}>Sign Out</button>
+              <button
+                className="flex w-full items-center gap-x-3"
+                onClick={() => signOut()}
+              >
+                <LogOut size={12} strokeWidth={1.5} />
+                <p className="text-xs">Log Out</p>
+              </button>{" "}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
-import { Search, Menu, CircleQuestionMark, Bell } from "lucide-react";
+import { Search, Menu, CircleQuestionMark, Bell, LogOut } from "lucide-react";
 
 import {
   DropdownMenu,
@@ -70,7 +70,13 @@ const Navbar = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem>
-                <button onClick={handleLogout}>Sign Out</button>
+                <button
+                  className="flex w-full items-center gap-x-3"
+                  onClick={handleLogout}
+                >
+                  <LogOut size={12} strokeWidth={1.5} />
+                  <p className="text-xs">Log Out</p>
+                </button>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

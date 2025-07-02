@@ -2,10 +2,11 @@
 import { auth } from "~/server/auth";
 import { redirect } from "next/navigation";
 import type { ISlugProp } from "~/type";
+import TableView from "~/app/_components/TableView";
 
-export default async function BaseSlugPage(params: ISlugProp) {
+const BaseSlugPage = async (params: ISlugProp) => {
   const session = await auth();
-  const { slug } = await params.params;
+  const { slug: id } = await params.params;
 
   if (!session) {
     redirect("/sign-in");
@@ -13,7 +14,9 @@ export default async function BaseSlugPage(params: ISlugProp) {
 
   return (
     <main className="p-6">
-      <h1 className="text-2xl font-bold">Base: {slug}</h1>
+      <TableView baseId={id} />
     </main>
   );
-}
+};
+
+export default BaseSlugPage;

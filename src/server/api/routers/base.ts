@@ -21,6 +21,16 @@ export const baseRouter = createTRPCRouter({
         data: {
           name,
           userId,
+          tables: {
+            create: [
+              {
+                name: "Table 1",
+              },
+            ],
+          },
+        },
+        include: {
+          tables: true,
         },
       });
 
@@ -73,5 +83,33 @@ export const baseRouter = createTRPCRouter({
       }
 
       return base;
+    }),
+
+  createTable: protectedProcedure
+    .input(z.object({ baseId: z.string(), name: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const base = await ctx.db.base.findFirst({
+        where: { id: input.baseId, userId: ctx.session.user.id },
+      });
+
+      if (!base) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Base not found",
+        });
+      }
+
+      const count = await ctx.db.table.count({
+        where: { baseId: input.baseId },
+      });
+
+      const table = await ctx.db.table.create({
+        data: {
+          name: input.name?.trim() ?? `Table ${count + 1}`,
+          baseId: input.baseId,
+        },
+      });
+
+      return table;
     }),
 });
