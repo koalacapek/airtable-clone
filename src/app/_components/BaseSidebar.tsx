@@ -1,9 +1,10 @@
 "use client";
 
-import { HelpCircle, Bell, LogOut } from "lucide-react";
+import { HelpCircle, Bell, LogOut, ArrowLeft } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,14 +12,28 @@ import {
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu";
 
-export default function BaseSidebar() {
+const BaseSidebar = () => {
   const { data: session } = useSession();
+  const router = useRouter();
 
   return (
-    <div className="border-gray-1 flex flex-col justify-between border-r px-3 pt-4 pb-5">
+    <div className="border-gray-1 flex flex-col justify-between border-r px-3 pb-5">
       {/* Top section */}
-      <div className="flex items-center justify-center">
-        <Image src="/airtable.svg" alt="Airtable logo" width={22} height={22} />
+      <div className="group relative flex items-center justify-center border">
+        {/* Default Airtable Logo */}
+        <Image
+          src="/airtable.svg"
+          alt="Airtable logo"
+          width={22}
+          height={22}
+          className="absolute top-4 transition-all duration-150 group-hover:scale-0"
+        />
+
+        <ArrowLeft
+          size={20}
+          className="absolute top-4 scale-0 transition-all duration-150 group-hover:scale-100 hover:cursor-pointer"
+          onClick={() => router.push("/home")}
+        />
       </div>
 
       {/* Bottom section */}
@@ -66,4 +81,6 @@ export default function BaseSidebar() {
       </div>
     </div>
   );
-}
+};
+
+export default BaseSidebar;
