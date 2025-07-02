@@ -27,7 +27,7 @@ export const tableRouter = createTRPCRouter({
 
       const tables = await ctx.db.table.findMany({
         where: { baseId: input.baseId },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "asc" },
       });
 
       return tables;

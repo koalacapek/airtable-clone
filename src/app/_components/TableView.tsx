@@ -32,7 +32,7 @@ const TableView = ({ baseId }: TableTabProps) => {
           id: "temp-id",
           name: "Creating new table...",
           baseId,
-          createdAt: new Date(), // ✅ fixes type error
+          createdAt: new Date(),
         },
       ]);
       return { previousTables };
@@ -61,14 +61,14 @@ const TableView = ({ baseId }: TableTabProps) => {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="h-full w-full">
       <Tabs value={activeTab ?? tables?.[0]?.id} onValueChange={setActiveTab}>
-        <TabsList className="flex space-x-4 overflow-x-auto border-b bg-transparent px-2">
+        <TabsList className="bg-orange-1 flex w-full justify-start overflow-x-auto rounded-none p-0">
           {tables?.map((table) => (
             <TabsTrigger
               key={table.id}
               value={table.id}
-              className="rounded-none border-b-2 border-transparent px-4 pt-3 pb-2 text-sm font-medium data-[state=active]:border-[#8B3C2C] data-[state=active]:text-black"
+              className="text-gray-2 max-w-fit rounded-none px-4 pt-3 pb-2 text-xs font-medium data-[state=active]:rounded-sm data-[state=active]:text-black"
             >
               {table.name}
             </TabsTrigger>
@@ -76,10 +76,9 @@ const TableView = ({ baseId }: TableTabProps) => {
 
           <button
             onClick={handleAddTable}
-            className="ml-2 flex items-center gap-1 px-3 text-sm whitespace-nowrap text-gray-500 hover:text-black disabled:opacity-50"
+            className="text-gray-2 ml-2 flex gap-1 px-3 text-sm whitespace-nowrap hover:text-black disabled:opacity-50"
           >
-            <Plus size={14} />
-            Add Table
+            <Plus size={19} />
           </button>
         </TabsList>
       </Tabs>
