@@ -57,7 +57,7 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
           className="w-full border-none bg-transparent outline-none"
           defaultValue={getValue() as string}
           onChange={(e) => {
-            // No-op for now — eventually update state/db here
+            // TODO
             console.log("Name changed:", e.target.value);
           }}
         />

@@ -8,12 +8,12 @@ import {
 
 import type { ColumnDef } from "@tanstack/react-table";
 
-import { useMemo } from "react";
 import type { Person } from "./BaseContent";
 
 type TableProps = {
-  data: Person[]; // Replace with your Row type
-  columns: ColumnDef<Person>[]; // Replace with your Column type
+  // Mock data for now
+  data: Person[];
+  columns: ColumnDef<Person>[];
 };
 
 const Table = ({ data, columns }: TableProps) => {
@@ -50,6 +50,16 @@ const Table = ({ data, columns }: TableProps) => {
               ))}
             </tr>
           ))}
+          <tr>
+            <button
+              onClick={() => {
+                console.log("Add row clicked");
+              }}
+              className="w-full py-2 text-sm"
+            >
+              + Add Row
+            </button>
+          </tr>
         </tbody>
       </table>
     </div>
