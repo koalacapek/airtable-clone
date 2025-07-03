@@ -33,3 +33,7 @@ export interface ICellProps {
   cellData: CellType;
   onUpdate: (value: string, cellId: string) => void;
 }
+
+export interface ITableProps {
+  activeTab?: string | null;
+}
