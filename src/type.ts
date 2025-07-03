@@ -1,3 +1,5 @@
+import type { Cell as CellType } from "~/type";
+
 export interface IBase {
   id: string;
   name: string;
@@ -23,3 +25,8 @@ export type Cell = {
   cellId: string;
   value: string;
 };
+
+export interface ICellProps {
+  cellData: CellType;
+  onUpdate: (value: string) => void;
+}

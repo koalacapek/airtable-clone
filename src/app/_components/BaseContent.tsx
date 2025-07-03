@@ -7,9 +7,13 @@ import Table from "./Table";
 import { api } from "~/trpc/react";
 import type { Cell, TableRow } from "~/type";
 import Spinner from "./Spinner";
+import CellComponent from "./Cell";
 
 const BaseContent = ({ baseId }: { baseId: string }) => {
   const [activeTab, setActiveTab] = useState<string | null>(null);
+
+  const [editedData, setEditedData] = useState<Record<string, string>>({});
+
   const utils = api.useUtils();
 
   // Get table data
@@ -52,6 +56,10 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
 
     onSettled: (_data, _err, _input) => {
       void utils.cell.getAll.invalidate({ tableId: _input.tableId });
+      setEditedData((prev) => {
+        const copy = { ...prev };
+        return copy;
+      });
     },
   });
 
@@ -71,6 +79,8 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   }
 
   const handleUpdate = (newValue: string, cellId: string) => {
+    setEditedData((prev) => ({ ...prev, [cellId]: newValue }));
+
     updateCell({
       cellId: cellId,
       value: newValue || "",
@@ -86,7 +96,7 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
       if (col) {
         // store all cell
         rowData[col.name] = {
-          value: cell.value,
+          value: editedData[cell.id] ?? cell.value,
           cellId: cell.id,
         };
       }
@@ -100,18 +110,9 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     cell: ({ row }) => {
       const cellData: Cell = row.getValue(col.name);
       return (
-        <input
-          className="w-full border-none bg-transparent outline-none"
-          defaultValue={cellData?.value}
-          onChange={(e) => {
-            console.log("Cell value:", {
-              newValue: e.target.value,
-              cellId: cellData?.cellId,
-            });
-          }}
-          onBlur={(e) => {
-            handleUpdate(e.target.value, cellData?.cellId);
-          }}
+        <CellComponent
+          cellData={cellData}
+          onUpdate={(newValue) => handleUpdate(newValue, cellData.cellId)}
         />
       );
     },
