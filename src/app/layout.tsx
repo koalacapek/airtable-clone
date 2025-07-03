@@ -5,7 +5,6 @@ import { Inter } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { SessionProvider } from "next-auth/react";
-import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -25,10 +24,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.className}`}>
       <body>
         <TRPCReactProvider>
-          <SessionProvider>
-            <Toaster />
-            {children}
-          </SessionProvider>
+          <SessionProvider>{children}</SessionProvider>
         </TRPCReactProvider>
       </body>
     </html>
