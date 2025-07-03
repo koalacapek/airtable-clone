@@ -14,6 +14,7 @@ import { api } from "~/trpc/react";
 import type { Cell, ITableProps, TableRow } from "~/type";
 import Spinner from "./Spinner";
 import CellComponent from "./Cell";
+import { Plus } from "lucide-react";
 
 const Table = ({ activeTab }: ITableProps) => {
   const utils = api.useUtils();
@@ -26,6 +27,7 @@ const Table = ({ activeTab }: ITableProps) => {
     },
   );
 
+  // Update cell value
   const { mutate: updateCell } = api.cell.updateCell.useMutation({
     onMutate: async ({ cellId, value, tableId }) => {
       // Cancel outgoing queries for table
@@ -53,6 +55,13 @@ const Table = ({ activeTab }: ITableProps) => {
 
     onSettled: (_data, _err, _input) => {
       void utils.cell.getAll.invalidate({ tableId: _input.tableId });
+    },
+  });
+
+  // Create new row
+  const { mutate: createRow } = api.row.createRow.useMutation({
+    onSuccess: () => {
+      void utils.table.getTableWithData.invalidate({ tableId: table!.id });
     },
   });
 
@@ -120,6 +129,11 @@ const Table = ({ activeTab }: ITableProps) => {
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const handleAddRow = () => {
+    if (!table) return;
+    createRow({ tableId: table.id });
+  };
+
   if (!table) {
     return (
       <div className="flex h-full items-center justify-center p-10">
@@ -156,14 +170,14 @@ const Table = ({ activeTab }: ITableProps) => {
             </tr>
           ))}
           <tr>
-            <button
-              onClick={() => {
-                console.log("Add row clicked");
-              }}
-              className="w-full py-2 text-sm"
-            >
-              + Add Row
-            </button>
+            <td colSpan={columns.length} className="border">
+              <button
+                onClick={handleAddRow}
+                className="w-full p-2 text-left text-sm hover:cursor-pointer hover:bg-gray-100"
+              >
+                <Plus strokeWidth={1.5} size={16} />
+              </button>
+            </td>
           </tr>
         </tbody>
       </table>
