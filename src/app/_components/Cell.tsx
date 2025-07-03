@@ -9,7 +9,9 @@ const Cell = ({ cellData, onUpdate, colType }: ICellProps) => {
 
   const handleBlur = () => {
     if (value !== cellData.value) {
+      console.log("here");
       onUpdate(value.trim());
+      console.log("there");
     }
   };
 
