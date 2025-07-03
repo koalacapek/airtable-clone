@@ -5,7 +5,7 @@ import TableTabs from "./TableTabs";
 import type { ColumnDef } from "@tanstack/react-table";
 import Table from "./Table";
 import { api } from "~/trpc/react";
-import type { TableRow } from "~/type";
+import type { Cell, TableRow } from "~/type";
 import Spinner from "./Spinner";
 
 const BaseContent = ({ baseId }: { baseId: string }) => {
@@ -39,10 +39,17 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   }
 
   const data: TableRow[] = table.rows.map((row) => {
-    const rowData: TableRow = { id: row.id };
+    const rowData = {} as TableRow;
+    rowData.id = row.id;
     row.cells.forEach((cell) => {
       const col = table.columns.find((c) => c.id === cell.columnId);
-      if (col) rowData[col.name] = cell.value;
+      if (col) {
+        // store all cell
+        rowData[col.name] = {
+          value: cell.value,
+          cellId: cell.id,
+        };
+      }
     });
     return rowData;
   });
@@ -50,16 +57,27 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   const columns: ColumnDef<TableRow>[] = table.columns.map((col) => ({
     accessorKey: col.name,
     header: col.name,
-    cell: ({ getValue }) => (
-      <input
-        className="w-full border-none bg-transparent outline-none"
-        defaultValue={getValue() as string}
-        onChange={(e) => {
-          // TODO
-          console.log("Name changed:", e.target.value);
-        }}
-      />
-    ),
+    cell: ({ row }) => {
+      const cellData: Cell = row.getValue(col.name);
+      return (
+        <input
+          className="w-full border-none bg-transparent outline-none"
+          defaultValue={cellData?.value}
+          onChange={(e) => {
+            console.log("Cell value:", {
+              newValue: e.target.value,
+              cellId: cellData?.cellId,
+            });
+          }}
+          onBlur={(e) => {
+            console.log("Cell updated:", {
+              newValue: e.target.value,
+              cellId: cellData?.cellId,
+            });
+          }}
+        />
+      );
+    },
   }));
 
   return (

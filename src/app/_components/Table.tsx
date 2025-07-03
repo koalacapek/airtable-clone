@@ -11,7 +11,6 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { TableRow } from "~/type";
 
 type TableProps = {
-  // Mock data for now
   data: TableRow[];
   columns: ColumnDef<TableRow>[];
 };

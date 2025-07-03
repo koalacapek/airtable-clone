@@ -60,6 +60,7 @@ export const tableRouter = createTRPCRouter({
         },
       });
 
+      // Create cells
       const defaultColumns = [
         { name: "Name", type: "TEXT" },
         { name: "Age", type: "NUMBER" },
@@ -78,7 +79,7 @@ export const tableRouter = createTRPCRouter({
         where: { tableId: table.id },
       });
 
-      // 🔹 Create rows and cells
+      // Create rows and cells
       const rowData = Array.from({ length: 5 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),

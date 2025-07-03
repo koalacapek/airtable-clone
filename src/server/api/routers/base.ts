@@ -98,6 +98,13 @@ export const baseRouter = createTRPCRouter({
         },
       });
 
+      if (!base) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Cell not found",
+        });
+      }
+
       return base;
     }),
 
