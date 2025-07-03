@@ -8,8 +8,14 @@ import {
 } from "~/server/api/trpc";
 
 export const cellRouter = createTRPCRouter({
-  createCell: protectedProcedure
-    .input(z.object({ cellId: z.string(), value: z.string().optional() }))
+  updateCell: protectedProcedure
+    .input(
+      z.object({
+        cellId: z.string(),
+        value: z.string().optional(),
+        tableId: z.string(),
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       const base = await ctx.db.cell.update({
         where: { id: input.cellId },
@@ -24,5 +30,20 @@ export const cellRouter = createTRPCRouter({
           message: "Cell not found",
         });
       }
+    }),
+  getAll: protectedProcedure
+    .input(z.object({ tableId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const cells = await ctx.db.cell.findMany({
+        where: {
+          row: { tableId: input.tableId },
+        },
+        include: {
+          row: true,
+          column: true,
+        },
+      });
+
+      return cells;
     }),
 });

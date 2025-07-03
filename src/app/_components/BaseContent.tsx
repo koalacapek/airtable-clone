@@ -10,7 +10,9 @@ import Spinner from "./Spinner";
 
 const BaseContent = ({ baseId }: { baseId: string }) => {
   const [activeTab, setActiveTab] = useState<string | null>(null);
+  const utils = api.useUtils();
 
+  // Get table data
   const { data: table } = api.table.getTableWithData.useQuery(
     { tableId: activeTab! },
     {
@@ -21,6 +23,36 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   // Fetch tables
   const { data: tables } = api.table.getAllByBase.useQuery({
     baseId,
+  });
+
+  const { mutate: updateCell } = api.cell.updateCell.useMutation({
+    onMutate: async ({ cellId, value, tableId }) => {
+      // Cancel outgoing queries for table
+      await utils.cell.getAll.cancel({ tableId });
+
+      const previousCells = utils.cell.getAll.getData({ tableId });
+
+      utils.cell.getAll.setData({ tableId }, (old) =>
+        old?.map((cell) =>
+          cell.id === cellId ? { ...cell, value: value?.trim() ?? "" } : cell,
+        ),
+      );
+
+      return { previousCells };
+    },
+
+    onError: (err, _input, context) => {
+      if (context?.previousCells) {
+        utils.cell.getAll.setData(
+          { tableId: _input.tableId },
+          context.previousCells,
+        );
+      }
+    },
+
+    onSettled: (_data, _err, _input) => {
+      void utils.cell.getAll.invalidate({ tableId: _input.tableId });
+    },
   });
 
   useEffect(() => {
@@ -37,6 +69,14 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
       </div>
     );
   }
+
+  const handleUpdate = (newValue: string, cellId: string) => {
+    updateCell({
+      cellId: cellId,
+      value: newValue || "",
+      tableId: table.id,
+    });
+  };
 
   const data: TableRow[] = table.rows.map((row) => {
     const rowData = {} as TableRow;
@@ -63,7 +103,15 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
         <input
           className="w-full border-none bg-transparent outline-none"
           defaultValue={cellData?.value}
-          onBlur={(e) => {}}
+          onChange={(e) => {
+            console.log("Cell value:", {
+              newValue: e.target.value,
+              cellId: cellData?.cellId,
+            });
+          }}
+          onBlur={(e) => {
+            handleUpdate(e.target.value, cellData?.cellId);
+          }}
         />
       );
     },

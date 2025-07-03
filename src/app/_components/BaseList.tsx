@@ -6,8 +6,6 @@ import BaseCard from "./BaseCard";
 import Spinner from "./Spinner";
 
 const BaseList = () => {
-  const utils = api.useUtils();
-
   const { data: bases, isLoading } = api.base.getAll.useQuery();
 
   if (isLoading) {
