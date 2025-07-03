@@ -20,7 +20,8 @@ export interface ITableTabProps {
 
 export type TableRow = {
   id: string;
-} & Record<string, Cell | undefined>;
+  [columnName: string]: Cell | string;
+};
 
 export type Cell = {
   cellId: string;
