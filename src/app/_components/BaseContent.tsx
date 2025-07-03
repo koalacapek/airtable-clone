@@ -8,6 +8,7 @@ import { api } from "~/trpc/react";
 import type { Cell, TableRow } from "~/type";
 import Spinner from "./Spinner";
 import CellComponent from "./Cell";
+import { ColumnType } from "@prisma/client";
 
 const BaseContent = ({ baseId }: { baseId: string }) => {
   const [activeTab, setActiveTab] = useState<string | null>(null);
@@ -110,8 +111,11 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     header: col.name,
     cell: ({ row }) => {
       const cellData: Cell = row.getValue(col.name);
+      const column = table.columns.find((c) => c.name === col.name);
+      console.log(column);
       return (
         <CellComponent
+          colType={column?.type ?? ColumnType.TEXT}
           cellData={cellData}
           onUpdate={(newValue) =>
             handleUpdate(newValue, cellData.cellId, row.original.id, col.name)

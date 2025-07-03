@@ -1,3 +1,4 @@
+import type { ColumnType } from "@prisma/client";
 import type { Cell as CellType } from "~/type";
 
 export interface IBase {
@@ -27,6 +28,7 @@ export type Cell = {
 };
 
 export interface ICellProps {
+  colType: ColumnType;
   cellData: CellType;
   onUpdate: (value: string) => void;
 }
