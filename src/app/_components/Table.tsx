@@ -1,6 +1,7 @@
 "use client";
 
-import { ColumnType, type Cell } from "@prisma/client";
+import { useMemo } from "react";
+import { ColumnType } from "@prisma/client";
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,20 +9,13 @@ import {
 } from "@tanstack/react-table";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { useState } from "react";
 import { api } from "~/trpc/react";
 
-import type { TableRow } from "~/type";
+import type { Cell, ITableProps, TableRow } from "~/type";
 import Spinner from "./Spinner";
 import CellComponent from "./Cell";
 
-type TableProps = {
-  activeTab?: string | null;
-};
-
-const Table = ({ activeTab }: TableProps) => {
-  const [editedData, setEditedData] = useState<Record<string, string>>({});
-
+const Table = ({ activeTab }: ITableProps) => {
   const utils = api.useUtils();
 
   // Get table data
@@ -62,59 +56,63 @@ const Table = ({ activeTab }: TableProps) => {
     },
   });
 
-  const handleUpdate = (
-    newValue: string,
-    cellId: string,
-    rowId: string,
-    columnName: string,
-  ) => {
-    const key = `${rowId}-${columnName}`;
-    setEditedData((prev) => ({ ...prev, [key]: newValue }));
+  const data: TableRow[] = useMemo(() => {
+    if (!table) return [];
 
-    if (!table) return;
-
-    updateCell({
-      cellId: cellId,
-      value: newValue || "",
-      tableId: table.id,
-    });
-  };
-
-  const data: TableRow[] =
-    table?.rows.map((row) => {
+    return table.rows.map((row) => {
       const rowData = {} as TableRow;
       rowData.id = row.id;
+
       row.cells.forEach((cell) => {
         const col = table.columns.find((c) => c.id === cell.columnId);
         if (col) {
-          const key = `${row.id}-${col.name}`;
           rowData[col.name] = {
-            value: editedData[key] ?? cell.value,
+            value: cell.value,
             cellId: cell.id,
           };
         }
       });
-      return rowData;
-    }) ?? [];
 
-  const columns: ColumnDef<TableRow>[] =
-    table?.columns.map((col) => ({
+      return rowData;
+    });
+  }, [table]);
+
+  const columns: ColumnDef<TableRow>[] = useMemo(() => {
+    const handleUpdate = (newValue: string, cellId: string) => {
+      // setEditedData((prev) => ({ ...prev, [cellId]: newValue }));
+
+      if (!table) {
+        console.error("Table data is not available");
+        return;
+      }
+      updateCell({
+        cellId: cellId,
+        value: newValue || "",
+        tableId: table.id,
+      });
+    };
+
+    if (!table) return [];
+
+    return table.columns.map((col) => ({
       accessorKey: col.name,
       header: col.name,
       cell: ({ row }) => {
         const cellData: Cell = row.getValue(col.name);
         const column = table.columns.find((c) => c.name === col.name);
+        console.log("cellData is", cellData, cellData.cellId);
         return (
           <CellComponent
             colType={column?.type ?? ColumnType.TEXT}
-            cellData={{ cellId: cellData.id, value: cellData.value }}
-            onUpdate={(newValue) =>
-              handleUpdate(newValue, cellData.id, row.original.id, col.name)
+            cellData={{ cellId: cellData.cellId, value: cellData.value }}
+            onUpdate={(newValue: string, cellId: string) =>
+              handleUpdate(newValue, cellId)
             }
           />
         );
       },
-    })) ?? [];
+    }));
+  }, [table, updateCell]);
 
   const tableInstance = useReactTable({
     data,

@@ -6,12 +6,10 @@ import type { ICellProps } from "~/type";
 
 const Cell = ({ cellData, onUpdate, colType }: ICellProps) => {
   const [value, setValue] = useState(cellData.value);
-
   const handleBlur = () => {
     if (value !== cellData.value) {
-      console.log("here");
-      onUpdate(value.trim());
-      console.log("there");
+      console.log("id is", cellData.cellId);
+      onUpdate(value.trim(), cellData.cellId);
     }
   };
 

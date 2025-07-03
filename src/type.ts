@@ -31,5 +31,5 @@ export type Cell = {
 export interface ICellProps {
   colType: ColumnType;
   cellData: CellType;
-  onUpdate: (value: string) => void;
+  onUpdate: (value: string, cellId: string) => void;
 }
