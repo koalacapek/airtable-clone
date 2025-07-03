@@ -63,18 +63,7 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
         <input
           className="w-full border-none bg-transparent outline-none"
           defaultValue={cellData?.value}
-          onChange={(e) => {
-            console.log("Cell value:", {
-              newValue: e.target.value,
-              cellId: cellData?.cellId,
-            });
-          }}
-          onBlur={(e) => {
-            console.log("Cell updated:", {
-              newValue: e.target.value,
-              cellId: cellData?.cellId,
-            });
-          }}
+          onBlur={(e) => {}}
         />
       );
     },

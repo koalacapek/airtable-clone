@@ -10,29 +10,6 @@ const BaseList = () => {
 
   const { data: bases, isLoading } = api.base.getAll.useQuery();
 
-  const { mutate: deleteBase } = api.base.delete.useMutation({
-    onMutate: async ({ id }) => {
-      await utils.base.getAll.cancel();
-
-      const previousData = utils.base.getAll.getData();
-      utils.base.getAll.setData(undefined, (old) =>
-        old?.filter((base) => base.id !== id),
-      );
-
-      return { previousData };
-    },
-
-    onError: (_err, _input, context) => {
-      if (context?.previousData) {
-        utils.base.getAll.setData(undefined, context.previousData);
-      }
-    },
-
-    onSettled: () => {
-      void utils.base.getAll.invalidate();
-    },
-  });
-
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center p-10">
@@ -54,11 +31,7 @@ const BaseList = () => {
   return (
     <div className="grid grid-cols-1 gap-4 p-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       {bases?.map((base) => (
-        <BaseCard
-          key={base.id}
-          {...base}
-          handleDelete={(id) => deleteBase({ id })}
-        />
+        <BaseCard key={base.id} {...base} />
       ))}
     </div>
   );

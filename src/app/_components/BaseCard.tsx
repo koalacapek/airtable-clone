@@ -1,6 +1,5 @@
 "use client";
 
-import type { IBaseCardProps } from "~/type";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { useRouter } from "next/navigation";
@@ -13,10 +12,11 @@ import {
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "~/trpc/react";
+import type { IBase } from "~/type";
 
 dayjs.extend(relativeTime);
 
-const BaseCard = (base: IBaseCardProps) => {
+const BaseCard = (base: IBase) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState(base.name);
   const inputRef = useRef<HTMLInputElement>(null);
