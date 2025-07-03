@@ -17,8 +17,8 @@ const Cell = ({ cellData, onUpdate }: ICellProps) => {
       onChange={(e) => setValue(e.target.value)}
       onBlur={() => {
         console.log(value, cellData.value);
-        if (value !== cellData.value) {
-          onUpdate(value);
+        if (value.trim() !== cellData.value.trim()) {
+          onUpdate(value.trim());
         }
       }}
     />

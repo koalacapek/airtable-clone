@@ -11,7 +11,6 @@ import CellComponent from "./Cell";
 
 const BaseContent = ({ baseId }: { baseId: string }) => {
   const [activeTab, setActiveTab] = useState<string | null>(null);
-
   const [editedData, setEditedData] = useState<Record<string, string>>({});
 
   const utils = api.useUtils();
@@ -56,10 +55,6 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
 
     onSettled: (_data, _err, _input) => {
       void utils.cell.getAll.invalidate({ tableId: _input.tableId });
-      setEditedData((prev) => {
-        const copy = { ...prev };
-        return copy;
-      });
     },
   });
 
@@ -78,8 +73,14 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     );
   }
 
-  const handleUpdate = (newValue: string, cellId: string) => {
-    setEditedData((prev) => ({ ...prev, [cellId]: newValue }));
+  const handleUpdate = (
+    newValue: string,
+    cellId: string,
+    rowId: string,
+    columnName: string,
+  ) => {
+    const key = `${rowId}-${columnName}`;
+    setEditedData((prev) => ({ ...prev, [key]: newValue }));
 
     updateCell({
       cellId: cellId,
@@ -94,9 +95,9 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     row.cells.forEach((cell) => {
       const col = table.columns.find((c) => c.id === cell.columnId);
       if (col) {
-        // store all cell
+        const key = `${row.id}-${col.name}`;
         rowData[col.name] = {
-          value: editedData[cell.id] ?? cell.value,
+          value: editedData[key] ?? cell.value,
           cellId: cell.id,
         };
       }
@@ -112,7 +113,9 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
       return (
         <CellComponent
           cellData={cellData}
-          onUpdate={(newValue) => handleUpdate(newValue, cellData.cellId)}
+          onUpdate={(newValue) =>
+            handleUpdate(newValue, cellData.cellId, row.original.id, col.name)
+          }
         />
       );
     },
