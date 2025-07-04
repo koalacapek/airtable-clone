@@ -217,9 +217,6 @@ const Table = ({ activeTab }: ITableProps) => {
           {tableInstance.getRowModel().rows.map((row) => (
             <tr key={row.id}>
               {row.getVisibleCells().map((cell, idx, arr) => {
-                // Skip the last column
-                if (idx === arr.length - 1) return null;
-
                 return (
                   <td key={cell.id} className="border p-2 hover:bg-gray-100">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

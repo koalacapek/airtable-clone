@@ -30,9 +30,9 @@ export const columnRouter = createTRPCRouter({
 
       // Create cells according to num of columns
       await ctx.db.cell.createMany({
-        data: rows.map((col) => ({
-          rowId: newCol.id,
-          columnId: col.id,
+        data: rows.map((row) => ({
+          rowId: row.id,
+          columnId: newCol.id,
           value: "",
         })),
       });
