@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { ColumnType } from "@prisma/client";
 import {
   useReactTable,
@@ -8,15 +8,31 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, Row } from "@tanstack/react-table";
 import { api } from "~/trpc/react";
 
 import type { Cell, ITableProps, TableRow } from "~/type";
 import Spinner from "./Spinner";
 import CellComponent from "./Cell";
 import { Plus } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
+import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectTrigger,
+  SelectItem,
+} from "~/components/ui/select";
+import AddColumnPopover from "./AddColumnPopover";
 
 const Table = ({ activeTab }: ITableProps) => {
+  const [newColumnName, setNewColumnName] = useState("");
+  const [newColumnType, setNewColumnType] = useState<"TEXT" | "NUMBER">("TEXT");
   const utils = api.useUtils();
 
   // Get table data
@@ -65,6 +81,13 @@ const Table = ({ activeTab }: ITableProps) => {
     },
   });
 
+  // Create new column
+  const { mutate: createColumn } = api.column.createColumn.useMutation({
+    onSuccess: () => {
+      void utils.table.getTableWithData.invalidate({ tableId: table!.id });
+    },
+  });
+
   const data: TableRow[] = useMemo(() => {
     if (!table) return [];
 
@@ -86,30 +109,40 @@ const Table = ({ activeTab }: ITableProps) => {
     });
   }, [table]);
 
-  const columns: ColumnDef<TableRow>[] = useMemo(() => {
-    const handleUpdate = (newValue: string, cellId: string) => {
-      // setEditedData((prev) => ({ ...prev, [cellId]: newValue }));
-
-      if (!table) {
-        console.error("Table data is not available");
-        return;
-      }
+  const handleUpdate = useCallback(
+    (newValue: string, cellId: string) => {
+      if (!table) return;
       updateCell({
-        cellId: cellId,
+        cellId,
         value: newValue || "",
         tableId: table.id,
       });
-    };
+    },
+    [table, updateCell],
+  );
 
+  const handleCreateColumn = useCallback(() => {
+    if (!table || !newColumnName.trim()) return;
+
+    createColumn({
+      tableId: table.id,
+      type: newColumnType,
+      name: newColumnName.trim(),
+    });
+
+    setNewColumnName("");
+    setNewColumnType("TEXT");
+  }, [table, newColumnName, newColumnType, createColumn]);
+
+  const columns: ColumnDef<TableRow>[] = useMemo(() => {
     if (!table) return [];
 
     return table.columns.map((col) => ({
       accessorKey: col.name,
-      header: col.name,
-      cell: ({ row }) => {
+      header: () => <div>{col.name || "Unnamed"}</div>,
+      cell: ({ row }: { row: Row<TableRow> }) => {
         const cellData: Cell = row.getValue(col.name);
         const column = table.columns.find((c) => c.name === col.name);
-        console.log("cellData is", cellData, cellData.cellId);
         return (
           <CellComponent
             colType={column?.type ?? ColumnType.TEXT}
@@ -121,7 +154,7 @@ const Table = ({ activeTab }: ITableProps) => {
         );
       },
     }));
-  }, [table, updateCell]);
+  }, [table, handleUpdate]);
 
   const tableInstance = useReactTable({
     data,
@@ -144,29 +177,55 @@ const Table = ({ activeTab }: ITableProps) => {
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200 text-sm">
+      <table className="w-fit border border-gray-200 text-sm">
         <thead>
           {tableInstance.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="bg-gray-100">
               {headerGroup.headers.map((header) => (
                 <th key={header.id} className="border-b p-2 text-left">
-                  {flexRender(
-                    header.column.columnDef.header,
-                    header.getContext(),
-                  )}
+                  <span>
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )}
+                  </span>
                 </th>
               ))}
+              <th className="border-b p-2 text-left">
+                <AddColumnPopover
+                  newColumnName={newColumnName}
+                  setNewColumnName={setNewColumnName}
+                  newColumnType={newColumnType}
+                  setNewColumnType={setNewColumnType}
+                  onSubmit={() => {
+                    if (table && newColumnName.trim()) {
+                      createColumn({
+                        tableId: table.id,
+                        type: newColumnType,
+                        name: newColumnName.trim(),
+                      });
+                      setNewColumnName("");
+                      setNewColumnType("TEXT");
+                    }
+                  }}
+                />
+              </th>
             </tr>
           ))}
         </thead>
         <tbody>
           {tableInstance.getRowModel().rows.map((row) => (
             <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="border p-2 hover:bg-gray-100">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
+              {row.getVisibleCells().map((cell, idx, arr) => {
+                // Skip the last column
+                if (idx === arr.length - 1) return null;
+
+                return (
+                  <td key={cell.id} className="border p-2 hover:bg-gray-100">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                );
+              })}
             </tr>
           ))}
           <tr>
