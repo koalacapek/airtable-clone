@@ -209,7 +209,7 @@ const Table = ({ activeTab }: ITableProps) => {
                 return (
                   <td
                     key={cell.id}
-                    className={`w-fit border p-2 focus-within:border-3 focus-within:border-blue-500 ${
+                    className={`w-fit border p-2 focus-within:border-2 focus-within:border-blue-500 ${
                       isRowNumberColumn ? "" : "hover:bg-gray-100"
                     }`}
                   >

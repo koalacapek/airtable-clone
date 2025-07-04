@@ -8,72 +8,69 @@ import {
 } from "~/server/api/trpc";
 
 export const baseRouter = createTRPCRouter({
-  create: protectedProcedure
-    .input(z.object({ name: z.string().optional() }))
-    .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
+  create: protectedProcedure.mutation(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
 
-      let name = input.name?.trim();
-      name ??= "Untitled Base";
+    const name = "Untitled Base";
 
-      const base = await ctx.db.base.create({
-        data: {
-          name,
-          userId,
-          tables: {
-            create: [
-              {
-                name: "Table 1",
-              },
-            ],
-          },
+    const base = await ctx.db.base.create({
+      data: {
+        name,
+        userId,
+        tables: {
+          create: [
+            {
+              name: "Table 1",
+            },
+          ],
         },
-        include: {
-          tables: true,
+      },
+      include: {
+        tables: true,
+      },
+    });
+
+    const table = base.tables[0];
+    if (!table) throw new Error("Failed to create default table");
+
+    // 🟨 Include Row Number as first column
+    const defaultColumns = [
+      { name: "#", type: "TEXT" as const, tableId: table.id },
+      { name: "Name", type: "TEXT" as const, tableId: table.id },
+      { name: "Age", type: "NUMBER" as const, tableId: table.id },
+    ];
+
+    await ctx.db.column.createMany({ data: defaultColumns });
+
+    // Refetch columns to get their IDs
+    const columns = await ctx.db.column.findMany({
+      where: { tableId: table.id },
+    });
+
+    const rowNumberCol = columns.find((c) => c.name === "#");
+    const nameCol = columns.find((c) => c.name === "Name");
+    const ageCol = columns.find((c) => c.name === "Age");
+
+    if (!rowNumberCol || !nameCol || !ageCol) {
+      throw new Error("Default columns not found");
+    }
+
+    // 🟨 Create initial row with value "1" for the row number
+    await ctx.db.row.create({
+      data: {
+        tableId: table.id,
+        cells: {
+          create: [
+            { columnId: rowNumberCol.id, value: "1" },
+            { columnId: nameCol.id, value: "John Doe" },
+            { columnId: ageCol.id, value: "30" },
+          ],
         },
-      });
+      },
+    });
 
-      const table = base.tables[0];
-      if (!table) throw new Error("Failed to create default table");
-
-      // 🟨 Include Row Number as first column
-      const defaultColumns = [
-        { name: "#", type: "TEXT" as const, tableId: table.id },
-        { name: "Name", type: "TEXT" as const, tableId: table.id },
-        { name: "Age", type: "NUMBER" as const, tableId: table.id },
-      ];
-
-      await ctx.db.column.createMany({ data: defaultColumns });
-
-      // Refetch columns to get their IDs
-      const columns = await ctx.db.column.findMany({
-        where: { tableId: table.id },
-      });
-
-      const rowNumberCol = columns.find((c) => c.name === "#");
-      const nameCol = columns.find((c) => c.name === "Name");
-      const ageCol = columns.find((c) => c.name === "Age");
-
-      if (!rowNumberCol || !nameCol || !ageCol) {
-        throw new Error("Default columns not found");
-      }
-
-      // 🟨 Create initial row with value "1" for the row number
-      await ctx.db.row.create({
-        data: {
-          tableId: table.id,
-          cells: {
-            create: [
-              { columnId: rowNumberCol.id, value: "1" },
-              { columnId: nameCol.id, value: "John Doe" },
-              { columnId: ageCol.id, value: "30" },
-            ],
-          },
-        },
-      });
-
-      return base;
-    }),
+    return base;
+  }),
 
   getAll: protectedProcedure.query(async ({ ctx }) => {
     const bases = await ctx.db.base.findMany({

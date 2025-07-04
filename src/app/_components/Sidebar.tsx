@@ -28,7 +28,7 @@ export default function Sidebar() {
       void utils.base.getAll.invalidate(); // Invalidate the cache to refetch bases
       // e.g., redirect or refetch
       void router.push(
-        `/base/${newBase.id}?name=${encodeURIComponent(newBase.name)}}`,
+        `/base/${newBase.id}?name=${encodeURIComponent(newBase.name)}`,
       );
     },
   });
@@ -100,7 +100,7 @@ export default function Sidebar() {
 
         {!isPending ? (
           <button
-            onClick={() => mutate({})}
+            onClick={() => mutate()}
             className="bg-blue-1 mt-2 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2 font-semibold text-white shadow hover:cursor-pointer hover:bg-blue-700"
           >
             <Plus size={16} strokeWidth={1.5} />
