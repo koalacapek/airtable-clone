@@ -15,19 +15,7 @@ import type { Cell, ITableProps, TableRow } from "~/type";
 import Spinner from "./Spinner";
 import CellComponent from "./Cell";
 import { Plus } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
-import { Input } from "~/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectTrigger,
-  SelectItem,
-} from "~/components/ui/select";
+
 import AddColumnPopover from "./AddColumnPopover";
 
 const Table = ({ activeTab }: ITableProps) => {
@@ -197,17 +185,7 @@ const Table = ({ activeTab }: ITableProps) => {
                   setNewColumnName={setNewColumnName}
                   newColumnType={newColumnType}
                   setNewColumnType={setNewColumnType}
-                  onSubmit={() => {
-                    if (table && newColumnName.trim()) {
-                      createColumn({
-                        tableId: table.id,
-                        type: newColumnType,
-                        name: newColumnName.trim(),
-                      });
-                      setNewColumnName("");
-                      setNewColumnType("TEXT");
-                    }
-                  }}
+                  onSubmit={handleCreateColumn}
                 />
               </th>
             </tr>
@@ -216,7 +194,7 @@ const Table = ({ activeTab }: ITableProps) => {
         <tbody>
           {tableInstance.getRowModel().rows.map((row) => (
             <tr key={row.id}>
-              {row.getVisibleCells().map((cell, idx, arr) => {
+              {row.getVisibleCells().map((cell) => {
                 return (
                   <td key={cell.id} className="border p-2 hover:bg-gray-100">
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
