@@ -196,7 +196,10 @@ const Table = ({ activeTab }: ITableProps) => {
             <tr key={row.id}>
               {row.getVisibleCells().map((cell) => {
                 return (
-                  <td key={cell.id} className="border p-2 hover:bg-gray-100">
+                  <td
+                    key={cell.id}
+                    className="border p-2 focus-within:border-3 focus-within:border-blue-500 hover:bg-gray-100"
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
                 );

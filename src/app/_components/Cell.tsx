@@ -20,7 +20,7 @@ const Cell = ({ cellData, onUpdate, colType }: ICellProps) => {
   return (
     <input
       type={colType === ColumnType.NUMBER ? "number" : "text"}
-      className="w-full border-none bg-transparent outline-none"
+      className="focus:border-blue-1 w-full border-none outline-none"
       value={value}
       onChange={(e) => setValue(e.target.value)}
       onBlur={handleBlur}
