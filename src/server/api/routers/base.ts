@@ -1,3 +1,4 @@
+import { faker } from "@faker-js/faker";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -10,7 +11,6 @@ import {
 export const baseRouter = createTRPCRouter({
   create: protectedProcedure.mutation(async ({ ctx }) => {
     const userId = ctx.session.user.id;
-
     const name = "Untitled Base";
 
     const base = await ctx.db.base.create({
@@ -33,7 +33,7 @@ export const baseRouter = createTRPCRouter({
     const table = base.tables[0];
     if (!table) throw new Error("Failed to create default table");
 
-    // 🟨 Include Row Number as first column
+    // Default columns including #
     const defaultColumns = [
       { name: "#", type: "TEXT" as const, tableId: table.id },
       { name: "Name", type: "TEXT" as const, tableId: table.id },
@@ -42,7 +42,6 @@ export const baseRouter = createTRPCRouter({
 
     await ctx.db.column.createMany({ data: defaultColumns });
 
-    // Refetch columns to get their IDs
     const columns = await ctx.db.column.findMany({
       where: { tableId: table.id },
     });
@@ -55,19 +54,41 @@ export const baseRouter = createTRPCRouter({
       throw new Error("Default columns not found");
     }
 
-    // 🟨 Create initial row with value "1" for the row number
-    await ctx.db.row.create({
-      data: {
-        tableId: table.id,
-        cells: {
-          create: [
-            { columnId: rowNumberCol.id, value: "1" },
-            { columnId: nameCol.id, value: "John Doe" },
-            { columnId: ageCol.id, value: "30" },
-          ],
-        },
+    // Generate 5 rows with faker
+    const rowsToCreate = Array.from({ length: 5 }).map((_, i) => ({
+      tableId: table.id,
+      cells: {
+        create: [
+          { columnId: rowNumberCol.id, value: (i + 1).toString() },
+          { columnId: nameCol.id, value: faker.person.fullName() },
+          {
+            columnId: ageCol.id,
+            value: faker.number.int({ min: 18, max: 65 }).toString(),
+          },
+        ],
       },
+    }));
+
+    await ctx.db.row.createMany({
+      data: rowsToCreate.map((r) => ({ tableId: r.tableId })),
     });
+
+    const createdRows = await ctx.db.row.findMany({
+      where: { tableId: table.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const cellsToCreate = createdRows.flatMap((row, i) => [
+      { rowId: row.id, columnId: rowNumberCol.id, value: (i + 1).toString() },
+      { rowId: row.id, columnId: nameCol.id, value: faker.person.fullName() },
+      {
+        rowId: row.id,
+        columnId: ageCol.id,
+        value: faker.number.int({ min: 18, max: 65 }).toString(),
+      },
+    ]);
+
+    await ctx.db.cell.createMany({ data: cellsToCreate });
 
     return base;
   }),
@@ -126,32 +147,4 @@ export const baseRouter = createTRPCRouter({
 
       return base;
     }),
-
-  // createTable: protectedProcedure
-  //   .input(z.object({ baseId: z.string(), name: z.string().optional() }))
-  //   .mutation(async ({ ctx, input }) => {
-  //     const base = await ctx.db.base.findFirst({
-  //       where: { id: input.baseId, userId: ctx.session.user.id },
-  //     });
-
-  //     if (!base) {
-  //       throw new TRPCError({
-  //         code: "NOT_FOUND",
-  //         message: "Base not found",
-  //       });
-  //     }
-
-  //     const count = await ctx.db.table.count({
-  //       where: { baseId: input.baseId },
-  //     });
-
-  //     const table = await ctx.db.table.create({
-  //       data: {
-  //         name: input.name?.trim() ?? `Table ${count + 1}`,
-  //         baseId: input.baseId,
-  //       },
-  //     });
-
-  //     return table;
-  //   }),
 });

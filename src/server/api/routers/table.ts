@@ -5,6 +5,7 @@ import { faker } from "@faker-js/faker";
 import {
   createTRPCRouter,
   protectedProcedure,
+  publicProcedure,
   // publicProcedure,
 } from "~/server/api/trpc";
 import type { ColumnType } from "@prisma/client";
@@ -119,5 +120,39 @@ export const tableRouter = createTRPCRouter({
       if (!table) throw new TRPCError({ code: "NOT_FOUND" });
 
       return table;
+    }),
+  getTableMetadata: protectedProcedure
+    .input(z.object({ tableId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.db.table.findUnique({
+        where: { id: input.tableId },
+        include: { columns: true },
+      });
+    }),
+
+  // Infinite query for table data
+  getTableWithDataInfinite: protectedProcedure
+    .input(
+      z.object({
+        tableId: z.string(),
+        limit: z.number().min(1).max(100).default(50),
+        cursor: z.number().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { tableId, limit, cursor = 0 } = input;
+
+      const rows = await ctx.db.row.findMany({
+        where: { tableId },
+        include: { cells: true },
+        skip: cursor * limit,
+        take: limit,
+        orderBy: { createdAt: "asc" },
+      });
+
+      return {
+        rows,
+        nextCursor: rows.length === limit ? cursor + 1 : undefined,
+      };
     }),
 });

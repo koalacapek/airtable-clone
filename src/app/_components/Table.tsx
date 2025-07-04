@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
 import { ColumnType } from "@prisma/client";
 import {
   useReactTable,
@@ -10,6 +10,8 @@ import {
 
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { api } from "~/trpc/react";
+
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 import type { Cell, ITableProps, TableRow } from "~/type";
 import Spinner from "./Spinner";
@@ -22,6 +24,7 @@ const Table = ({ activeTab }: ITableProps) => {
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnType, setNewColumnType] = useState<"TEXT" | "NUMBER">("TEXT");
   const utils = api.useUtils();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Get table data
   const { data: table } = api.table.getTableWithData.useQuery(
@@ -30,6 +33,12 @@ const Table = ({ activeTab }: ITableProps) => {
       enabled: !!activeTab,
     },
   );
+
+  const virtualizer = useVirtualizer({
+    count: table?.rows.length ?? 0,
+    estimateSize: () => 40,
+    getScrollElement: () => scrollRef.current,
+  });
 
   // Update cell value
   const { mutate: updateCell } = api.cell.updateCell.useMutation({
@@ -173,7 +182,7 @@ const Table = ({ activeTab }: ITableProps) => {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div ref={scrollRef} className="overflow-x-auto">
       <table className="border border-gray-200 text-sm">
         <thead>
           {tableInstance.getHeaderGroups().map((headerGroup) => (
