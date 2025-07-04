@@ -32,6 +32,7 @@ export interface ICellProps {
   colType: ColumnType;
   cellData: CellType;
   onUpdate: (value: string, cellId: string) => void;
+  readOnly: boolean;
 }
 
 export interface ITableProps {

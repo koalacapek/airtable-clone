@@ -14,8 +14,7 @@ export const baseRouter = createTRPCRouter({
       const userId = ctx.session.user.id;
 
       let name = input.name?.trim();
-
-      name ??= `Untitled Base`;
+      name ??= "Untitled Base";
 
       const base = await ctx.db.base.create({
         data: {
@@ -37,40 +36,37 @@ export const baseRouter = createTRPCRouter({
       const table = base.tables[0];
       if (!table) throw new Error("Failed to create default table");
 
-      // 2️⃣ Create default columns
+      // 🟨 Include Row Number as first column
       const defaultColumns = [
+        { name: "#", type: "TEXT" as const, tableId: table.id },
         { name: "Name", type: "TEXT" as const, tableId: table.id },
         { name: "Age", type: "NUMBER" as const, tableId: table.id },
       ];
 
-      await ctx.db.column.createMany({
-        data: defaultColumns,
-      });
+      await ctx.db.column.createMany({ data: defaultColumns });
 
-      // 3️⃣ Refetch columns to get their IDs (createMany doesn't return records)
+      // Refetch columns to get their IDs
       const columns = await ctx.db.column.findMany({
         where: { tableId: table.id },
       });
 
+      const rowNumberCol = columns.find((c) => c.name === "#");
       const nameCol = columns.find((c) => c.name === "Name");
       const ageCol = columns.find((c) => c.name === "Age");
 
-      if (!nameCol || !ageCol) throw new Error("Default columns not found");
+      if (!rowNumberCol || !nameCol || !ageCol) {
+        throw new Error("Default columns not found");
+      }
 
-      // 4️⃣ Create 1 row with 2 cells
+      // 🟨 Create initial row with value "1" for the row number
       await ctx.db.row.create({
         data: {
           tableId: table.id,
           cells: {
             create: [
-              {
-                columnId: nameCol.id,
-                value: "John Doe",
-              },
-              {
-                columnId: ageCol.id,
-                value: "30",
-              },
+              { columnId: rowNumberCol.id, value: "1" },
+              { columnId: nameCol.id, value: "John Doe" },
+              { columnId: ageCol.id, value: "30" },
             ],
           },
         },
@@ -134,31 +130,31 @@ export const baseRouter = createTRPCRouter({
       return base;
     }),
 
-  createTable: protectedProcedure
-    .input(z.object({ baseId: z.string(), name: z.string().optional() }))
-    .mutation(async ({ ctx, input }) => {
-      const base = await ctx.db.base.findFirst({
-        where: { id: input.baseId, userId: ctx.session.user.id },
-      });
+  // createTable: protectedProcedure
+  //   .input(z.object({ baseId: z.string(), name: z.string().optional() }))
+  //   .mutation(async ({ ctx, input }) => {
+  //     const base = await ctx.db.base.findFirst({
+  //       where: { id: input.baseId, userId: ctx.session.user.id },
+  //     });
 
-      if (!base) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Base not found",
-        });
-      }
+  //     if (!base) {
+  //       throw new TRPCError({
+  //         code: "NOT_FOUND",
+  //         message: "Base not found",
+  //       });
+  //     }
 
-      const count = await ctx.db.table.count({
-        where: { baseId: input.baseId },
-      });
+  //     const count = await ctx.db.table.count({
+  //       where: { baseId: input.baseId },
+  //     });
 
-      const table = await ctx.db.table.create({
-        data: {
-          name: input.name?.trim() ?? `Table ${count + 1}`,
-          baseId: input.baseId,
-        },
-      });
+  //     const table = await ctx.db.table.create({
+  //       data: {
+  //         name: input.name?.trim() ?? `Table ${count + 1}`,
+  //         baseId: input.baseId,
+  //       },
+  //     });
 
-      return table;
-    }),
+  //     return table;
+  //   }),
 });

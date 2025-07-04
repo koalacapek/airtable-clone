@@ -14,23 +14,43 @@ export const rowRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const columns = await ctx.db.column.findMany({
-        where: { tableId: input.tableId },
-      });
+      // Fetch columns and current rows to determine the row number
+      const [columns, existingRows] = await Promise.all([
+        ctx.db.column.findMany({
+          where: { tableId: input.tableId },
+        }),
+        ctx.db.row.findMany({
+          where: { tableId: input.tableId },
+        }),
+      ]);
 
+      // Create a new row
       const newRow = await ctx.db.row.create({
         data: {
           tableId: input.tableId,
         },
       });
 
-      // Create cells according to num of columns
-      await ctx.db.cell.createMany({
-        data: columns.map((col) => ({
+      const hashCol = columns.find((col) => col.name === "#");
+
+      // Create cells with value "" by default
+      const cells = columns.map((col) => {
+        let value = "";
+
+        // Set row number value for the # column
+        if (col.id === hashCol?.id) {
+          value = (existingRows.length + 1).toString();
+        }
+
+        return {
           rowId: newRow.id,
           columnId: col.id,
-          value: "",
-        })),
+          value,
+        };
+      });
+
+      await ctx.db.cell.createMany({
+        data: cells,
       });
 
       const fullRow = await ctx.db.row.findUnique({

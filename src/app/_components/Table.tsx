@@ -125,23 +125,32 @@ const Table = ({ activeTab }: ITableProps) => {
   const columns: ColumnDef<TableRow>[] = useMemo(() => {
     if (!table) return [];
 
-    return table.columns.map((col) => ({
-      accessorKey: col.name,
-      header: () => <div>{col.name || "Unnamed"}</div>,
-      cell: ({ row }: { row: Row<TableRow> }) => {
-        const cellData: Cell = row.getValue(col.name);
-        const column = table.columns.find((c) => c.name === col.name);
-        return (
-          <CellComponent
-            colType={column?.type ?? ColumnType.TEXT}
-            cellData={{ cellId: cellData.cellId, value: cellData.value }}
-            onUpdate={(newValue: string, cellId: string) =>
-              handleUpdate(newValue, cellId)
-            }
-          />
-        );
-      },
-    }));
+    return table.columns.map((col) => {
+      const isReadOnly = col.name === "#";
+
+      return {
+        accessorKey: col.name,
+        header: () => <div>{col.name || "Unnamed"}</div>,
+        cell: ({ row }: { row: Row<TableRow> }) => {
+          const cellData: Cell = row.getValue(col.name);
+          const column = table.columns.find((c) => c.name === col.name);
+
+          return (
+            <CellComponent
+              readOnly={isReadOnly}
+              colType={column?.type ?? ColumnType.TEXT}
+              cellData={{
+                cellId: cellData.cellId,
+                value: cellData.value,
+              }}
+              onUpdate={(newValue: string, cellId: string) =>
+                handleUpdate(newValue, cellId)
+              }
+            />
+          );
+        },
+      };
+    });
   }, [table, handleUpdate]);
 
   const tableInstance = useReactTable({
@@ -165,7 +174,7 @@ const Table = ({ activeTab }: ITableProps) => {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-fit border border-gray-200 text-sm">
+      <table className="border border-gray-200 text-sm">
         <thead>
           {tableInstance.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="bg-gray-100">
@@ -195,10 +204,14 @@ const Table = ({ activeTab }: ITableProps) => {
           {tableInstance.getRowModel().rows.map((row) => (
             <tr key={row.id}>
               {row.getVisibleCells().map((cell) => {
+                const isRowNumberColumn = cell.column.id === "#";
+
                 return (
                   <td
                     key={cell.id}
-                    className="border p-2 focus-within:border-3 focus-within:border-blue-500 hover:bg-gray-100"
+                    className={`w-fit border p-2 focus-within:border-3 focus-within:border-blue-500 ${
+                      isRowNumberColumn ? "" : "hover:bg-gray-100"
+                    }`}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </td>
