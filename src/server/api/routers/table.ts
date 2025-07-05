@@ -84,7 +84,7 @@ export const tableRouter = createTRPCRouter({
       }
 
       // Create rows and cells
-      const rowData = Array.from({ length: 100 }).map(() => ({
+      const rowData = Array.from({ length: 200 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
@@ -163,8 +163,11 @@ export const tableRouter = createTRPCRouter({
 
       let nextCursor: string | undefined = undefined;
       if (rows.length > limit) {
-        const nextItem = rows.pop();
-        nextCursor = nextItem!.id;
+        // We fetched one extra row to check if there are more
+        // Use the last row's ID as the next cursor
+        nextCursor = rows[limit - 1]?.id;
+        // Return only the requested limit of rows
+        rows.splice(limit);
       }
 
       return {

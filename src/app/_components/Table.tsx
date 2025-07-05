@@ -99,20 +99,44 @@ const Table = ({ activeTab }: ITableProps) => {
 
   // Load more data when scrolling near the end
   useEffect(() => {
-    const [lastItem] = [...virtualizer.getVirtualItems()].reverse();
+    const virtualItems = virtualizer.getVirtualItems();
+    if (virtualItems.length === 0) return;
 
-    if (!lastItem) {
-      return;
-    }
+    const lastItem = virtualItems[virtualItems.length - 1];
+    if (!lastItem) return;
 
-    if (
-      lastItem.index >= data.length - 1 &&
-      hasNextPage &&
-      !isFetchingNextPage
-    ) {
+    // Load more when we're within 5 items of the end
+    const shouldLoadMore =
+      lastItem.index >= data.length - 5 && hasNextPage && !isFetchingNextPage;
+
+    if (shouldLoadMore) {
       void fetchNextPage();
     }
-  }, [hasNextPage, fetchNextPage, data, isFetchingNextPage, virtualizer]);
+  }, [
+    hasNextPage,
+    fetchNextPage,
+    data.length,
+    isFetchingNextPage,
+    virtualizer,
+  ]);
+
+  // Backup scroll event listener for infinite scrolling
+  useEffect(() => {
+    const scrollElement = scrollRef.current;
+    if (!scrollElement) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px from bottom
+
+      if (isNearBottom && hasNextPage && !isFetchingNextPage) {
+        void fetchNextPage();
+      }
+    };
+
+    scrollElement.addEventListener("scroll", handleScroll);
+    return () => scrollElement.removeEventListener("scroll", handleScroll);
+  }, [hasNextPage, fetchNextPage, isFetchingNextPage]);
 
   // Update cell value
   const { mutate: updateCell } = api.cell.updateCell.useMutation({
@@ -250,17 +274,15 @@ const Table = ({ activeTab }: ITableProps) => {
   return (
     <div ref={scrollRef} className="flex-1 overflow-x-auto overflow-y-auto">
       <table className="w-full border border-gray-200 text-sm">
-        <thead className="sticky top-0 z-10 bg-white">
+        <thead className="sticky -top-0.5 z-10 bg-white">
           {tableInstance.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="bg-gray-100">
               {headerGroup.headers.map((header) => (
                 <th key={header.id} className="border-b p-2 text-left">
-                  <span>
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                  </span>
+                  {flexRender(
+                    header.column.columnDef.header,
+                    header.getContext(),
+                  )}
                 </th>
               ))}
               <th className="border-b p-2 text-left">
@@ -327,9 +349,14 @@ const Table = ({ activeTab }: ITableProps) => {
             <tr>
               <td
                 colSpan={columns.length + 1}
-                className="border p-2 text-center"
+                className="border bg-gray-50 p-4 text-center"
               >
-                <Spinner size={16} />
+                <div className="flex items-center justify-center gap-2">
+                  <Spinner size={16} />
+                  <span className="text-sm text-gray-600">
+                    Loading more rows...
+                  </span>
+                </div>
               </td>
             </tr>
           )}
