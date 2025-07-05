@@ -15,7 +15,7 @@ export const rowRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // Fetch columns and current rows to determine the row number
-      const [columns, existingRows] = await Promise.all([
+      const [columns] = await Promise.all([
         ctx.db.column.findMany({
           where: { tableId: input.tableId },
         }),
