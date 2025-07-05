@@ -21,7 +21,7 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   }, [tables, activeTab]);
 
   return (
-    <div className="h-full">
+    <div className="flex h-full flex-col">
       <TableTabs baseId={baseId} active={activeTab} setActive={setActiveTab} />
       <Table activeTab={activeTab} />
     </div>

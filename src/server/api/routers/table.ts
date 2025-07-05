@@ -2,13 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { faker } from "@faker-js/faker";
 
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-  // publicProcedure,
-} from "~/server/api/trpc";
-import type { ColumnType } from "@prisma/client";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const tableRouter = createTRPCRouter({
   getAllByBase: protectedProcedure
@@ -63,14 +57,15 @@ export const tableRouter = createTRPCRouter({
 
       // Create cells
       const defaultColumns = [
-        { name: "Name", type: "TEXT" },
-        { name: "Age", type: "NUMBER" },
+        { name: "#", type: "TEXT" as const },
+        { name: "Name", type: "TEXT" as const },
+        { name: "Age", type: "NUMBER" as const },
       ];
 
       await ctx.db.column.createMany({
         data: defaultColumns.map((col) => ({
           name: col.name,
-          type: col.type as ColumnType,
+          type: col.type,
           tableId: table.id,
         })),
       });
@@ -80,8 +75,16 @@ export const tableRouter = createTRPCRouter({
         where: { tableId: table.id },
       });
 
+      const rowNumberCol = columns.find((c) => c.name === "#");
+      const nameCol = columns.find((c) => c.name === "Name");
+      const ageCol = columns.find((c) => c.name === "Age");
+
+      if (!rowNumberCol || !nameCol || !ageCol) {
+        throw new Error("Default columns not found");
+      }
+
       // Create rows and cells
-      const rowData = Array.from({ length: 5 }).map(() => ({
+      const rowData = Array.from({ length: 100 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
@@ -91,13 +94,15 @@ export const tableRouter = createTRPCRouter({
           data: { tableId: table.id },
         });
 
-        const cells = columns.map((col) => ({
-          value: data[col.name.toLowerCase() as keyof typeof data] ?? "",
-          columnId: col.id,
-          rowId: row.id,
-        }));
+        const cells = [
+          { columnId: rowNumberCol.id, value: "" }, // Empty value, will be computed on frontend
+          { columnId: nameCol.id, value: data.name },
+          { columnId: ageCol.id, value: data.age },
+        ];
 
-        await ctx.db.cell.createMany({ data: cells });
+        await ctx.db.cell.createMany({
+          data: cells.map((cell) => ({ ...cell, rowId: row.id })),
+        });
       }
 
       return table;
@@ -136,23 +141,35 @@ export const tableRouter = createTRPCRouter({
       z.object({
         tableId: z.string(),
         limit: z.number().min(1).max(100).default(50),
-        cursor: z.number().optional(),
+        cursor: z.string().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { tableId, limit, cursor = 0 } = input;
+      const { tableId, limit, cursor } = input;
 
       const rows = await ctx.db.row.findMany({
-        where: { tableId },
+        where: {
+          tableId,
+          ...(cursor && {
+            id: {
+              gt: cursor,
+            },
+          }),
+        },
         include: { cells: true },
-        skip: cursor * limit,
-        take: limit,
+        take: limit + 1,
         orderBy: { createdAt: "asc" },
       });
 
+      let nextCursor: string | undefined = undefined;
+      if (rows.length > limit) {
+        const nextItem = rows.pop();
+        nextCursor = nextItem!.id;
+      }
+
       return {
         rows,
-        nextCursor: rows.length === limit ? cursor + 1 : undefined,
+        nextCursor,
       };
     }),
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { ColumnType } from "@prisma/client";
 import {
   useReactTable,
@@ -26,19 +26,93 @@ const Table = ({ activeTab }: ITableProps) => {
   const utils = api.useUtils();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Get table data
-  const { data: table } = api.table.getTableWithData.useQuery(
+  // Get table metadata (columns)
+  const { data: tableMetadata } = api.table.getTableMetadata.useQuery(
     { tableId: activeTab! },
     {
       enabled: !!activeTab,
     },
   );
 
+  // Get table data with infinite scrolling
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = api.table.getTableWithDataInfinite.useInfiniteQuery(
+    {
+      tableId: activeTab!,
+      limit: 50,
+    },
+    {
+      enabled: !!activeTab,
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+    },
+  );
+
+  // Flatten all rows from all pages
+  const allRows = useMemo(() => {
+    if (!infiniteData?.pages) return [];
+    return infiniteData.pages.flatMap((page) => page.rows);
+  }, [infiniteData]);
+
+  // Transform rows into table data format
+  const data: TableRow[] = useMemo(() => {
+    if (!tableMetadata || !allRows.length) return [];
+
+    return allRows.map((row, index) => {
+      const rowData = {} as TableRow;
+      rowData.id = row.id;
+
+      row.cells.forEach((cell) => {
+        const col = tableMetadata.columns.find((c) => c.id === cell.columnId);
+        if (col) {
+          // For the # column, use the frontend index + 1
+          // This ensures row numbers are always sequential and work with filtering
+          if (col.name === "#") {
+            rowData[col.name] = {
+              value: (index + 1).toString(),
+              cellId: cell.id,
+            };
+          } else {
+            rowData[col.name] = {
+              value: cell.value,
+              cellId: cell.id,
+            };
+          }
+        }
+      });
+
+      return rowData;
+    });
+  }, [tableMetadata, allRows]);
+
+  // Virtualizer setup
   const virtualizer = useVirtualizer({
-    count: table?.rows.length ?? 0,
+    count: data.length,
     estimateSize: () => 40,
     getScrollElement: () => scrollRef.current,
+    overscan: 5,
   });
+
+  // Load more data when scrolling near the end
+  useEffect(() => {
+    const [lastItem] = [...virtualizer.getVirtualItems()].reverse();
+
+    if (!lastItem) {
+      return;
+    }
+
+    if (
+      lastItem.index >= data.length - 1 &&
+      hasNextPage &&
+      !isFetchingNextPage
+    ) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, fetchNextPage, data, isFetchingNextPage, virtualizer]);
 
   // Update cell value
   const { mutate: updateCell } = api.cell.updateCell.useMutation({
@@ -74,67 +148,51 @@ const Table = ({ activeTab }: ITableProps) => {
   // Create new row
   const { mutate: createRow } = api.row.createRow.useMutation({
     onSuccess: () => {
-      void utils.table.getTableWithData.invalidate({ tableId: table!.id });
+      void utils.table.getTableWithDataInfinite.invalidate({
+        tableId: activeTab!,
+      });
     },
   });
 
   // Create new column
   const { mutate: createColumn } = api.column.createColumn.useMutation({
     onSuccess: () => {
-      void utils.table.getTableWithData.invalidate({ tableId: table!.id });
+      void utils.table.getTableMetadata.invalidate({ tableId: activeTab! });
+      void utils.table.getTableWithDataInfinite.invalidate({
+        tableId: activeTab!,
+      });
     },
   });
 
-  const data: TableRow[] = useMemo(() => {
-    if (!table) return [];
-
-    return table.rows.map((row) => {
-      const rowData = {} as TableRow;
-      rowData.id = row.id;
-
-      row.cells.forEach((cell) => {
-        const col = table.columns.find((c) => c.id === cell.columnId);
-        if (col) {
-          rowData[col.name] = {
-            value: cell.value,
-            cellId: cell.id,
-          };
-        }
-      });
-
-      return rowData;
-    });
-  }, [table]);
-
   const handleUpdate = useCallback(
     (newValue: string, cellId: string) => {
-      if (!table) return;
+      if (!activeTab) return;
       updateCell({
         cellId,
         value: newValue || "",
-        tableId: table.id,
+        tableId: activeTab,
       });
     },
-    [table, updateCell],
+    [activeTab, updateCell],
   );
 
   const handleCreateColumn = useCallback(() => {
-    if (!table || !newColumnName.trim()) return;
+    if (!activeTab || !newColumnName.trim()) return;
 
     createColumn({
-      tableId: table.id,
+      tableId: activeTab,
       type: newColumnType,
       name: newColumnName.trim(),
     });
 
     setNewColumnName("");
     setNewColumnType("TEXT");
-  }, [table, newColumnName, newColumnType, createColumn]);
+  }, [activeTab, newColumnName, newColumnType, createColumn]);
 
   const columns: ColumnDef<TableRow>[] = useMemo(() => {
-    if (!table) return [];
+    if (!tableMetadata) return [];
 
-    return table.columns.map((col) => {
+    return tableMetadata.columns.map((col) => {
       const isReadOnly = col.name === "#";
 
       return {
@@ -142,7 +200,7 @@ const Table = ({ activeTab }: ITableProps) => {
         header: () => <div>{col.name || "Unnamed"}</div>,
         cell: ({ row }: { row: Row<TableRow> }) => {
           const cellData: Cell = row.getValue(col.name);
-          const column = table.columns.find((c) => c.name === col.name);
+          const column = tableMetadata.columns.find((c) => c.name === col.name);
 
           return (
             <CellComponent
@@ -160,7 +218,7 @@ const Table = ({ activeTab }: ITableProps) => {
         },
       };
     });
-  }, [table, handleUpdate]);
+  }, [tableMetadata, handleUpdate]);
 
   const tableInstance = useReactTable({
     data,
@@ -169,11 +227,11 @@ const Table = ({ activeTab }: ITableProps) => {
   });
 
   const handleAddRow = () => {
-    if (!table) return;
-    createRow({ tableId: table.id });
+    if (!activeTab) return;
+    createRow({ tableId: activeTab });
   };
 
-  if (!table) {
+  if (isLoading || !tableMetadata) {
     return (
       <div className="flex h-full items-center justify-center p-10">
         <Spinner size={24} />
@@ -181,10 +239,18 @@ const Table = ({ activeTab }: ITableProps) => {
     );
   }
 
+  const virtualRows = virtualizer.getVirtualItems();
+  const totalHeight = virtualizer.getTotalSize();
+  const paddingTop = virtualRows.length > 0 ? (virtualRows[0]?.start ?? 0) : 0;
+  const paddingBottom =
+    virtualRows.length > 0
+      ? totalHeight - (virtualRows[virtualRows.length - 1]?.end ?? 0)
+      : 0;
+
   return (
-    <div ref={scrollRef} className="overflow-x-auto">
-      <table className="border border-gray-200 text-sm">
-        <thead>
+    <div ref={scrollRef} className="flex-1 overflow-x-auto overflow-y-auto">
+      <table className="w-full border border-gray-200 text-sm">
+        <thead className="sticky top-0 z-10 bg-white">
           {tableInstance.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id} className="bg-gray-100">
               {headerGroup.headers.map((header) => (
@@ -210,26 +276,45 @@ const Table = ({ activeTab }: ITableProps) => {
           ))}
         </thead>
         <tbody>
-          {tableInstance.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => {
-                const isRowNumberColumn = cell.column.id === "#";
-
-                return (
-                  <td
-                    key={cell.id}
-                    className={`w-fit border p-2 focus-within:border-2 focus-within:border-blue-500 ${
-                      isRowNumberColumn ? "" : "hover:bg-gray-100"
-                    }`}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                );
-              })}
+          {paddingTop > 0 && (
+            <tr>
+              <td style={{ height: `${paddingTop}px` }} />
             </tr>
-          ))}
+          )}
+          {virtualRows.map((virtualRow) => {
+            const row = tableInstance.getRowModel().rows[virtualRow.index];
+            if (!row) return null;
+
+            return (
+              <tr key={row.id} data-index={virtualRow.index}>
+                {row.getVisibleCells().map((cell) => {
+                  const isRowNumberColumn = cell.column.id === "#";
+
+                  return (
+                    <td
+                      key={cell.id}
+                      className={`w-fit border p-2 focus-within:border-2 focus-within:border-blue-500 ${
+                        isRowNumberColumn ? "" : "hover:bg-gray-100"
+                      }`}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="border p-2" />
+              </tr>
+            );
+          })}
+          {paddingBottom > 0 && (
+            <tr>
+              <td style={{ height: `${paddingBottom}px` }} />
+            </tr>
+          )}
           <tr>
-            <td colSpan={columns.length} className="border">
+            <td colSpan={columns.length + 1} className="border">
               <button
                 onClick={handleAddRow}
                 className="w-full p-2 text-left text-sm hover:cursor-pointer hover:bg-gray-100"
@@ -238,6 +323,16 @@ const Table = ({ activeTab }: ITableProps) => {
               </button>
             </td>
           </tr>
+          {isFetchingNextPage && (
+            <tr>
+              <td
+                colSpan={columns.length + 1}
+                className="border p-2 text-center"
+              >
+                <Spinner size={16} />
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

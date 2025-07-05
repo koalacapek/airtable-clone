@@ -31,23 +31,12 @@ export const rowRouter = createTRPCRouter({
         },
       });
 
-      const hashCol = columns.find((col) => col.name === "#");
-
-      // Create cells with value "" by default
-      const cells = columns.map((col) => {
-        let value = "";
-
-        // Set row number value for the # column
-        if (col.id === hashCol?.id) {
-          value = (existingRows.length + 1).toString();
-        }
-
-        return {
-          rowId: newRow.id,
-          columnId: col.id,
-          value,
-        };
-      });
+      // Create cells with empty values by default
+      const cells = columns.map((col) => ({
+        rowId: newRow.id,
+        columnId: col.id,
+        value: "",
+      }));
 
       await ctx.db.cell.createMany({
         data: cells,
