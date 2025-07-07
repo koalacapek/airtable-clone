@@ -84,26 +84,61 @@ export const tableRouter = createTRPCRouter({
       }
 
       // Create rows and cells
-      const rowData = Array.from({ length: 200 }).map(() => ({
+      const rowData = Array.from({ length: 10000 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
 
-      for (const data of rowData) {
-        const row = await ctx.db.row.create({
-          data: { tableId: table.id },
-        });
+      // Create all rows first
+      await ctx.db.row.createMany({
+        data: rowData.map(() => ({
+          tableId: table.id,
+        })),
+        skipDuplicates: false,
+      });
 
-        const cells = [
-          { columnId: rowNumberCol.id, value: "" }, // Empty value, will be computed on frontend
-          { columnId: nameCol.id, value: data.name },
-          { columnId: ageCol.id, value: data.age },
-        ];
+      // Then we fetch those
+      const rows = await ctx.db.row.findMany({
+        where: { tableId: table.id },
+        orderBy: { id: "asc" }, // only if you're sure insertion order matches
+        take: rowData.length, // optional, if this is a new table
+      });
 
-        await ctx.db.cell.createMany({
-          data: cells.map((cell) => ({ ...cell, rowId: row.id })),
-        });
+      // lastly we create all cells
+      const allCells = [];
+
+      for (let i = 0; i < rowData.length; i++) {
+        const row = rows[i];
+        const data = rowData[i];
+
+        if (row && data) {
+          allCells.push(
+            { rowId: row.id, columnId: rowNumberCol.id, value: "" },
+            { rowId: row.id, columnId: nameCol.id, value: data.name },
+            { rowId: row.id, columnId: ageCol.id, value: data.age },
+          );
+        }
       }
+
+      await ctx.db.cell.createMany({
+        data: allCells,
+      });
+
+      // for (const data of rowData) {
+      //   const row = await ctx.db.row.create({
+      //     data: { tableId: table.id },
+      //   });
+
+      //   const cells = [
+      //     { columnId: rowNumberCol.id, value: "" }, // Empty value, will be computed on frontend
+      //     { columnId: nameCol.id, value: data.name },
+      //     { columnId: ageCol.id, value: data.age },
+      //   ];
+
+      //   await ctx.db.cell.createMany({
+      //     data: cells.map((cell) => ({ ...cell, rowId: row.id })),
+      //   });
+      // }
 
       return table;
     }),
