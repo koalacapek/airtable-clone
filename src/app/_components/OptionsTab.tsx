@@ -14,65 +14,65 @@ import {
 
 const OptionsTab = () => {
   return (
-    <div className="flex w-full justify-between p-3 pe-2 pl-5">
+    <div className="flex w-full justify-between p-2 pe-4 pl-5">
       {/* Grid */}
       <div className="flex items-center gap-x-6">
         <div>
           <Menu strokeWidth={1.5} size={16} />
         </div>
 
-        <div className="flex items-center justify-center gap-x-1.5">
+        <div className="flex items-center justify-center gap-x-1.5 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <LayoutPanelTop strokeWidth={1.5} size={16} />
-          <p className="text-xs font-medium">Grid View</p>
+          <p className="text-xs font-semibold text-black">Grid View</p>
           <ChevronDown strokeWidth={1.5} size={16} />
         </div>
       </div>
 
       {/* Filter, Sort, etc. */}
-      <div className="flex items-center gap-x-7">
+      <div className="flex items-center gap-x-3">
         {/* Visibility */}
-        <div className="flex items-center gap-x-1">
+        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <EyeOff strokeWidth={1.5} size={16} />
           <p className="text-xs">Hide fields</p>
         </div>
 
         {/* Filter */}
-        <div className="flex items-center gap-x-1">
+        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <Filter strokeWidth={1.5} size={16} />
           <p className="text-xs">Filter</p>
         </div>
 
         {/* Group */}
-        <div className="flex items-center gap-x-1">
+        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <LayoutGrid strokeWidth={1.5} size={16} />
           <p className="text-xs">Group</p>
         </div>
 
         {/* Sort */}
-        <div className="flex items-center gap-x-1">
+        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <SortAsc strokeWidth={1.5} size={16} />
           <p className="text-xs">Sort</p>
         </div>
 
         {/* Color */}
-        <div className="flex items-center gap-x-1">
+        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <Palette strokeWidth={1.5} size={16} />
           <p className="text-xs">Color</p>
         </div>
 
         {/* Row Height */}
-        <div className="flex items-center gap-x-1">
+        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <ArrowUpNarrowWide strokeWidth={1.5} size={16} />
         </div>
 
         {/* Share and sync */}
-        <div className="flex items-center gap-x-1">
+        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <Share strokeWidth={1.5} size={16} />
           <p className="text-xs">Share and sync</p>
         </div>
 
         {/* Search */}
-        <div>
+        <div className="flex items-center justify-center gap-x-1.5 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <Search strokeWidth={1.5} size={16} />
         </div>
       </div>

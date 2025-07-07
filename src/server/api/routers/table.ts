@@ -84,64 +84,10 @@ export const tableRouter = createTRPCRouter({
       }
 
       // Create rows and cells
-      const rowData = Array.from({ length: 150 }).map(() => ({
+      const rowData = Array.from({ length: 200 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
-
-      // Create all rows first
-      // await ctx.db.row.createMany({
-      //   data: rowData.map(() => ({
-      //     tableId: table.id,
-      //   })),
-      // });
-
-      // // Then we fetch those
-      // const rows = await ctx.db.row.findMany({
-      //   where: { tableId: table.id },
-      //   orderBy: { id: "asc" },
-      //   take: rowData.length,
-      // });
-
-      // // lastly we create all cells
-      // const allCells = [];
-
-      // for (let i = 0; i < rowData.length; i++) {
-      //   const row = rows[i];
-      //   const data = rowData[i];
-
-      //   if (row && data) {
-      //     allCells.push(
-      //       {
-      //         rowId: row.id,
-      //         columnId: rowNumberCol.id,
-      //         value: (i + 1).toString(),
-      //       },
-      //       { rowId: row.id, columnId: nameCol.id, value: data.name },
-      //       { rowId: row.id, columnId: ageCol.id, value: data.age },
-      //     );
-      //   }
-      // }
-
-      // await ctx.db.cell.createMany({
-      //   data: allCells,
-      // });
-
-      // for (const data of rowData) {
-      //   const row = await ctx.db.row.create({
-      //     data: { tableId: table.id },
-      //   });
-
-      //   const cells = [
-      //     { columnId: rowNumberCol.id, value: "" }, // Empty value, will be computed on frontend
-      //     { columnId: nameCol.id, value: data.name },
-      //     { columnId: ageCol.id, value: data.age },
-      //   ];
-
-      //   await ctx.db.cell.createMany({
-      //     data: cells.map((cell) => ({ ...cell, rowId: row.id })),
-      //   });
-      // }
 
       const createdRows = await ctx.db.row.createManyAndReturn({
         data: rowData.map(() => ({ tableId: table.id })),
@@ -152,6 +98,7 @@ export const tableRouter = createTRPCRouter({
         value: string;
         rowId: string;
       }[] = [];
+
       rowData.forEach((data, index) => {
         const row = createdRows[index];
         const cells = [
@@ -214,11 +161,6 @@ export const tableRouter = createTRPCRouter({
       const rows = await ctx.db.row.findMany({
         where: {
           tableId,
-          // ...(cursor && {
-          //   id: {
-          //     gt: cursor,
-          //   },
-          // }),
         },
         cursor: cursor ? { id: cursor } : undefined,
         include: { cells: true },

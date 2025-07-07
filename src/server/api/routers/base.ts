@@ -78,8 +78,8 @@ export const baseRouter = createTRPCRouter({
       orderBy: { createdAt: "asc" },
     });
 
-    const cellsToCreate = createdRows.flatMap((row) => [
-      { rowId: row.id, columnId: rowNumberCol.id, value: "" },
+    const cellsToCreate = createdRows.flatMap((row, index) => [
+      { rowId: row.id, columnId: rowNumberCol.id, value: index.toString() },
       { rowId: row.id, columnId: nameCol.id, value: faker.person.fullName() },
       {
         rowId: row.id,
