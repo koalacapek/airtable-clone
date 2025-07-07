@@ -79,7 +79,7 @@ const SortTableButton = ({ activeTab }: { activeTab: string }) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="TEXT">Text</SelectItem>
+                  <SelectItem value="asc">Text</SelectItem>
                   <SelectItem value="NUMBER">Number</SelectItem>
                 </SelectGroup>
               </SelectContent>
