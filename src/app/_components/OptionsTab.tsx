@@ -9,10 +9,11 @@ import {
   Palette,
   Search,
   Share,
-  SortAsc,
 } from "lucide-react";
+import type { IOptionsTabProps } from "~/type";
+import SortTableButton from "./SortTableButton";
 
-const OptionsTab = () => {
+const OptionsTab = ({ activeTab }: IOptionsTabProps) => {
   return (
     <div className="flex w-full justify-between p-2 pe-4 pl-5">
       {/* Grid */}
@@ -49,10 +50,7 @@ const OptionsTab = () => {
         </div>
 
         {/* Sort */}
-        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
-          <SortAsc strokeWidth={1.5} size={16} />
-          <p className="text-xs">Sort</p>
-        </div>
+        <SortTableButton activeTab={activeTab!} />
 
         {/* Color */}
         <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">

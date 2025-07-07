@@ -38,3 +38,7 @@ export interface ICellProps {
 export interface ITableProps {
   activeTab?: string | null;
 }
+
+export interface IOptionsTabProps {
+  activeTab?: string | null;
+}

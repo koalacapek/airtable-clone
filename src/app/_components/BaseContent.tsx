@@ -24,7 +24,7 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   return (
     <div className="flex h-full flex-col">
       <TableTabs baseId={baseId} active={activeTab} setActive={setActiveTab} />
-      <OptionsTab />
+      <OptionsTab activeTab={activeTab} />
       <Table activeTab={activeTab} />
     </div>
   );

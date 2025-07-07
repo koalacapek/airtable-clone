@@ -153,10 +153,12 @@ export const tableRouter = createTRPCRouter({
         tableId: z.string(),
         limit: z.number().max(100).default(50),
         cursor: z.string().optional(),
+        sortBy: z.string().optional(),
+        sortOrder: z.enum(["asc", "desc"]).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { tableId, limit, cursor } = input;
+      const { tableId, limit, cursor, sortBy, sortOrder } = input;
 
       const rows = await ctx.db.row.findMany({
         where: {
@@ -165,6 +167,9 @@ export const tableRouter = createTRPCRouter({
         cursor: cursor ? { id: cursor } : undefined,
         include: { cells: true },
         take: limit + 1,
+        orderBy: sortBy
+          ? { [sortBy]: sortOrder ?? "asc" }
+          : { createdAt: "asc" as const },
       });
 
       let nextCursor: string | undefined = undefined;
