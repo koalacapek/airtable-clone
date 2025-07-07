@@ -158,7 +158,8 @@ export const tableRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { tableId, limit, cursor, sortBy, sortOrder } = input;
+      // const { tableId, limit, cursor, sortBy, sortOrder } = input;
+      const { tableId, limit, cursor } = input;
 
       const rows = await ctx.db.row.findMany({
         where: {
@@ -167,9 +168,9 @@ export const tableRouter = createTRPCRouter({
         cursor: cursor ? { id: cursor } : undefined,
         include: { cells: true },
         take: limit + 1,
-        orderBy: sortBy
-          ? { [sortBy]: sortOrder ?? "asc" }
-          : { createdAt: "asc" as const },
+        // orderBy: sortBy
+        //   ? { [sortBy]: sortOrder ?? "asc" }
+        //   : { createdAt: "asc" as const },
       });
 
       let nextCursor: string | undefined = undefined;
