@@ -84,45 +84,48 @@ export const tableRouter = createTRPCRouter({
       }
 
       // Create rows and cells
-      const rowData = Array.from({ length: 200 }).map(() => ({
+      const rowData = Array.from({ length: 150 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
 
       // Create all rows first
-      await ctx.db.row.createMany({
-        data: rowData.map(() => ({
-          tableId: table.id,
-        })),
-        skipDuplicates: false,
-      });
+      // await ctx.db.row.createMany({
+      //   data: rowData.map(() => ({
+      //     tableId: table.id,
+      //   })),
+      // });
 
-      // Then we fetch those
-      const rows = await ctx.db.row.findMany({
-        where: { tableId: table.id },
-        orderBy: { id: "asc" },
-        take: rowData.length,
-      });
+      // // Then we fetch those
+      // const rows = await ctx.db.row.findMany({
+      //   where: { tableId: table.id },
+      //   orderBy: { id: "asc" },
+      //   take: rowData.length,
+      // });
 
-      // lastly we create all cells
-      const allCells = [];
+      // // lastly we create all cells
+      // const allCells = [];
 
-      for (let i = 0; i < rowData.length; i++) {
-        const row = rows[i];
-        const data = rowData[i];
+      // for (let i = 0; i < rowData.length; i++) {
+      //   const row = rows[i];
+      //   const data = rowData[i];
 
-        if (row && data) {
-          allCells.push(
-            { rowId: row.id, columnId: rowNumberCol.id, value: "" },
-            { rowId: row.id, columnId: nameCol.id, value: data.name },
-            { rowId: row.id, columnId: ageCol.id, value: data.age },
-          );
-        }
-      }
+      //   if (row && data) {
+      //     allCells.push(
+      //       {
+      //         rowId: row.id,
+      //         columnId: rowNumberCol.id,
+      //         value: (i + 1).toString(),
+      //       },
+      //       { rowId: row.id, columnId: nameCol.id, value: data.name },
+      //       { rowId: row.id, columnId: ageCol.id, value: data.age },
+      //     );
+      //   }
+      // }
 
-      await ctx.db.cell.createMany({
-        data: allCells,
-      });
+      // await ctx.db.cell.createMany({
+      //   data: allCells,
+      // });
 
       // for (const data of rowData) {
       //   const row = await ctx.db.row.create({
@@ -140,6 +143,32 @@ export const tableRouter = createTRPCRouter({
       //   });
       // }
 
+      const createdRows = await ctx.db.row.createManyAndReturn({
+        data: rowData.map(() => ({ tableId: table.id })),
+      });
+
+      const cellsToCreate: {
+        columnId: string;
+        value: string;
+        rowId: string;
+      }[] = [];
+      rowData.forEach((data, index) => {
+        const row = createdRows[index];
+        const cells = [
+          {
+            columnId: rowNumberCol.id,
+            value: (index + 1).toString(),
+            rowId: row!.id,
+          },
+          { columnId: nameCol.id, value: data.name, rowId: row!.id },
+          { columnId: ageCol.id, value: data.age, rowId: row!.id },
+        ];
+        cellsToCreate.push(...cells);
+      });
+
+      await ctx.db.cell.createMany({
+        data: cellsToCreate,
+      });
       return table;
     }),
   getTableWithData: protectedProcedure
@@ -175,7 +204,7 @@ export const tableRouter = createTRPCRouter({
     .input(
       z.object({
         tableId: z.string(),
-        limit: z.number().min(1).max(100).default(50),
+        limit: z.number().max(100).default(50),
         cursor: z.string().optional(),
       }),
     )
@@ -185,24 +214,21 @@ export const tableRouter = createTRPCRouter({
       const rows = await ctx.db.row.findMany({
         where: {
           tableId,
-          ...(cursor && {
-            id: {
-              gt: cursor,
-            },
-          }),
+          // ...(cursor && {
+          //   id: {
+          //     gt: cursor,
+          //   },
+          // }),
         },
+        cursor: cursor ? { id: cursor } : undefined,
         include: { cells: true },
         take: limit + 1,
-        orderBy: { createdAt: "asc" },
       });
 
       let nextCursor: string | undefined = undefined;
       if (rows.length > limit) {
-        // We fetched one extra row to check if there are more
-        // Use the last row's ID as the next cursor
-        nextCursor = rows[limit - 1]?.id;
-        // Return only the requested limit of rows
-        rows.splice(limit);
+        const nextItem = rows.pop();
+        nextCursor = nextItem!.id;
       }
 
       return {

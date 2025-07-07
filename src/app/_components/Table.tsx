@@ -54,6 +54,7 @@ const Table = ({ activeTab }: ITableProps) => {
 
   // Flatten all rows from all pages
   const allRows = useMemo(() => {
+    console.log(infiniteData);
     if (!infiniteData?.pages) return [];
     return infiniteData.pages.flatMap((page) => page.rows);
   }, [infiniteData]);
@@ -137,6 +138,13 @@ const Table = ({ activeTab }: ITableProps) => {
     scrollElement.addEventListener("scroll", handleScroll);
     return () => scrollElement.removeEventListener("scroll", handleScroll);
   }, [hasNextPage, fetchNextPage, isFetchingNextPage]);
+
+  // Scroll to top when activeTab changes
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
 
   // Update cell value
   const { mutate: updateCell } = api.cell.updateCell.useMutation({
