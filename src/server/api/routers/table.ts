@@ -84,7 +84,7 @@ export const tableRouter = createTRPCRouter({
       }
 
       // Create rows and cells
-      const rowData = Array.from({ length: 10000 }).map(() => ({
+      const rowData = Array.from({ length: 200 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
@@ -100,8 +100,8 @@ export const tableRouter = createTRPCRouter({
       // Then we fetch those
       const rows = await ctx.db.row.findMany({
         where: { tableId: table.id },
-        orderBy: { id: "asc" }, // only if you're sure insertion order matches
-        take: rowData.length, // optional, if this is a new table
+        orderBy: { id: "asc" },
+        take: rowData.length,
       });
 
       // lastly we create all cells

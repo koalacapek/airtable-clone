@@ -1,16 +1,15 @@
 "use client";
 
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { api } from "~/trpc/react"; // tRPC hook
+import { api } from "~/trpc/react";
 import { Plus } from "lucide-react";
-import Spinner from "./Spinner";
 import type { ITableTabProps } from "~/type";
 
 const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
   const utils = api.useUtils();
 
   // Fetch tables
-  const { data: tables, isLoading } = api.table.getAllByBase.useQuery({
+  const { data: tables } = api.table.getAllByBase.useQuery({
     baseId,
   });
 
@@ -46,14 +45,6 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
   const handleAddTable = () => {
     createTable({ baseId });
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center p-10">
-        <Spinner size={24} />
-      </div>
-    );
-  }
 
   return (
     <div className="w-full">
