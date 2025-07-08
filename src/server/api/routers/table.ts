@@ -257,6 +257,7 @@ export const tableRouter = createTRPCRouter({
                 where: whereConditions,
                 include: { cells: true },
               });
+
               // Sort by the specific column
               allRows.sort((a, b) => {
                 const aCell = a.cells.find((c) => c.columnId === column.id);
@@ -273,18 +274,32 @@ export const tableRouter = createTRPCRouter({
               });
 
               // Apply pagination
-              const startIndex = cursor
-                ? allRows.findIndex((row) => row.id === cursor) + 1
-                : 0;
+              // TODO: This logic is the issue, it's not working as expected
+              let startIndex = 0;
+              if (cursor) {
+                // Find the cursor position in the sorted array
+                const cursorIndex = allRows.findIndex(
+                  (row) => row.id === cursor,
+                );
+                if (cursorIndex >= 0) {
+                  // Start AFTER the cursor position
+                  startIndex = cursorIndex + 1;
+                }
+              }
+
+              // Get the next batch of rows
               const paginatedRows = allRows.slice(
                 startIndex,
-                startIndex + limit + 1,
+                startIndex + limit,
               );
 
+              // Determine if there are more rows after this batch
+              const hasMore = startIndex + limit < allRows.length;
               let nextCursor: string | undefined = undefined;
-              if (paginatedRows.length > limit) {
-                const nextItem = paginatedRows.pop();
-                nextCursor = nextItem!.id;
+
+              if (hasMore && paginatedRows.length > 0) {
+                // The cursor should be the ID of the last row in the current batch
+                nextCursor = paginatedRows[paginatedRows.length - 1]?.id;
               }
 
               return {
@@ -296,7 +311,6 @@ export const tableRouter = createTRPCRouter({
         }
       }
       // If no sorting is applied, use regular pagination
-      console.log(cursor);
       const rows = await ctx.db.row.findMany({
         where: { tableId },
         cursor: cursor ? { id: cursor } : undefined,
@@ -305,7 +319,6 @@ export const tableRouter = createTRPCRouter({
       });
 
       let nextCursor: string | undefined = undefined;
-      console.log("rows", rows.length);
       if (rows.length > limit) {
         const nextItem = rows.pop();
         nextCursor = nextItem!.id;

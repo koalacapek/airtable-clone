@@ -68,18 +68,17 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
   const data: TableRow[] = useMemo(() => {
     if (!tableMetadata || !allRows.length) return [];
 
-    return allRows.map((row, index) => {
+    console.log("allRows", allRows.length);
+    return allRows.map((row, globalIndex) => {
       const rowData = {} as TableRow;
       rowData.id = row.id;
-
       row.cells.forEach((cell) => {
         const col = tableMetadata.columns.find((c) => c.id === cell.columnId);
         if (col) {
-          // For the # column, use the frontend index + 1
-          // This ensures row numbers are always sequential and work with filtering
+          // For the # column, use the global index + 1
           if (col.name === "#") {
             rowData[col.name] = {
-              value: (index + 1).toString(),
+              value: (globalIndex + 1).toString(),
               cellId: cell.id,
             };
           } else {
