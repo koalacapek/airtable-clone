@@ -85,7 +85,7 @@ export const tableRouter = createTRPCRouter({
       }
 
       // Create rows and cells
-      const rowData = Array.from({ length: 200 }).map(() => ({
+      const rowData = Array.from({ length: 137 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
@@ -274,7 +274,6 @@ export const tableRouter = createTRPCRouter({
               });
 
               // Apply pagination
-              // TODO: This logic is the issue, it's not working as expected
               let startIndex = 0;
               if (cursor) {
                 // Find the cursor position in the sorted array
