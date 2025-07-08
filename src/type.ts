@@ -84,3 +84,9 @@ export interface ISortTableButtonProps {
   sortConditions: Record<string, unknown> | undefined;
   onUpdate: (sortConditions: Record<string, unknown>) => void;
 }
+
+export interface IFilterTableButtonProps {
+  activeTab: string;
+  filters: Record<string, unknown> | undefined;
+  onUpdate: (filters: Record<string, unknown>) => void;
+}

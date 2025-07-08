@@ -193,22 +193,96 @@ export const tableRouter = createTRPCRouter({
           .map(([columnName, filterConfig]) => {
             const column = columns.find((col) => col.name === columnName);
             if (!column) return null;
+            console.log("lol", columnName, filterConfig);
 
             if (
               filterConfig &&
               typeof filterConfig === "object" &&
               filterConfig !== null &&
-              "value" in filterConfig
+              "op" in filterConfig
             ) {
-              const filterValue = (filterConfig as { value: string }).value;
-              if (filterValue) {
+              const filterOp = (filterConfig as { op: string }).op;
+
+              if (filterOp === "is_empty") {
+                return {
+                  cells: {
+                    none: {
+                      columnId: column.id,
+                    },
+                  },
+                } as Prisma.RowWhereInput;
+              } else if (filterOp === "is_not_empty") {
+                return {
+                  cells: {
+                    some: {
+                      columnId: column.id,
+                    },
+                  },
+                } as Prisma.RowWhereInput;
+              } else if (filterOp === "contains") {
                 return {
                   cells: {
                     some: {
                       columnId: column.id,
                       value: {
-                        contains: filterValue,
+                        contains: (filterConfig as { value: string }).value,
                         mode: "insensitive" as const,
+                      },
+                    },
+                  },
+                } as Prisma.RowWhereInput;
+              } else if (filterOp === "not_contains") {
+                return {
+                  AND: [
+                    {
+                      cells: {
+                        some: {
+                          columnId: column.id,
+                        },
+                      },
+                    },
+                    {
+                      cells: {
+                        none: {
+                          columnId: column.id,
+                          value: {
+                            contains: (filterConfig as { value: string }).value,
+                            mode: "insensitive" as const,
+                          },
+                        },
+                      },
+                    },
+                  ],
+                } as Prisma.RowWhereInput;
+              } else if (filterOp === "equal") {
+                return {
+                  cells: {
+                    some: {
+                      columnId: column.id,
+                      value: {
+                        equals: (filterConfig as { value: string }).value,
+                      },
+                    },
+                  },
+                } as Prisma.RowWhereInput;
+              } else if (filterOp === "greater") {
+                return {
+                  cells: {
+                    some: {
+                      columnId: column.id,
+                      value: {
+                        gt: (filterConfig as { value: string }).value,
+                      },
+                    },
+                  },
+                } as Prisma.RowWhereInput;
+              } else if (filterOp === "smaller") {
+                return {
+                  cells: {
+                    some: {
+                      columnId: column.id,
+                      value: {
+                        lt: (filterConfig as { value: string }).value,
                       },
                     },
                   },
@@ -311,7 +385,7 @@ export const tableRouter = createTRPCRouter({
       }
       // If no sorting is applied, use regular pagination
       const rows = await ctx.db.row.findMany({
-        where: { tableId },
+        where: whereConditions,
         cursor: cursor ? { id: cursor } : undefined,
         include: { cells: true },
         take: limit + 1,

@@ -2,7 +2,6 @@ import {
   ArrowUpNarrowWide,
   ChevronDown,
   EyeOff,
-  Filter,
   LayoutGrid,
   LayoutPanelTop,
   Menu,
@@ -13,6 +12,7 @@ import {
 import type { IOptionsTabProps } from "~/type";
 import SortTableButton from "./SortTableButton";
 import { api } from "~/trpc/react";
+import FilterTableButton from "./FilterTableButton";
 
 const OptionsTab = ({
   activeTab,
@@ -58,10 +58,22 @@ const OptionsTab = ({
         </div>
 
         {/* Filter */}
-        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
+        <FilterTableButton
+          activeTab={activeTab!}
+          filters={viewConditions?.filters}
+          onUpdate={(filters) => {
+            if (activeView) {
+              updateView({
+                id: activeView,
+                filters,
+              });
+            }
+          }}
+        />
+        {/* <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <Filter strokeWidth={1.5} size={16} />
           <p className="text-xs">Filter</p>
-        </div>
+        </div> */}
 
         {/* Group */}
         <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
