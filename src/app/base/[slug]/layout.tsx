@@ -7,7 +7,7 @@ export default async function HomeLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       <BaseSidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <BaseNavbar />

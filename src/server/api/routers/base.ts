@@ -55,7 +55,7 @@ export const baseRouter = createTRPCRouter({
     }
 
     // Generate 5 rows with faker
-    const rowsToCreate = Array.from({ length: 5 }).map((_, i) => ({
+    const rowsToCreate = Array.from({ length: 200 }).map((_, i) => ({
       tableId: table.id,
       cells: {
         create: [

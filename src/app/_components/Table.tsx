@@ -60,7 +60,6 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
 
   // Flatten all rows from all pages
   const allRows = useMemo(() => {
-    console.log(infiniteData);
     if (!infiniteData?.pages) return [];
     return infiniteData.pages.flatMap((page) => page.rows);
   }, [infiniteData]);
@@ -99,58 +98,53 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
   // Virtualizer setup
   const virtualizer = useVirtualizer({
     count: data.length,
-    estimateSize: () => 40,
+    estimateSize: () => 32,
     getScrollElement: () => scrollRef.current,
     overscan: 5,
   });
 
   // Load more data when scrolling near the end
-  useEffect(() => {
-    const virtualItems = virtualizer.getVirtualItems();
-    if (virtualItems.length === 0) return;
+  // useEffect(() => {
+  //   const virtualItems = virtualizer.getVirtualItems();
 
-    const lastItem = virtualItems[virtualItems.length - 1];
-    if (!lastItem) return;
+  //   if (virtualItems.length === 0) return;
 
-    // Load more when we're within 5 items of the end
-    const shouldLoadMore =
-      lastItem.index >= data.length - 5 && hasNextPage && !isFetchingNextPage;
+  //   const lastItem = virtualItems[virtualItems.length - 1];
+  //   if (!lastItem) return;
 
-    if (shouldLoadMore) {
-      void fetchNextPage();
-    }
-  }, [
-    hasNextPage,
-    fetchNextPage,
-    data.length,
-    isFetchingNextPage,
-    virtualizer,
-  ]);
+  //   const shouldLoadMore =
+  //     lastItem.index >= data.length - 5 && hasNextPage && !isFetchingNextPage;
+
+  //   if (shouldLoadMore) {
+  //     void fetchNextPage();
+  //   }
+  // }, [
+  //   hasNextPage,
+  //   fetchNextPage,
+  //   data.length,
+  //   isFetchingNextPage,
+  //   virtualizer,
+  // ]);
 
   // Backup scroll event listener for infinite scrolling
-  useEffect(() => {
-    const scrollElement = scrollRef.current;
-    if (!scrollElement) return;
 
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px from bottom
+  const handleScroll = useCallback(
+    (containerRefElement?: HTMLDivElement | null) => {
+      if (containerRefElement) {
+        const { scrollTop, scrollHeight, clientHeight } = containerRefElement;
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 500;
 
-      if (isNearBottom && hasNextPage && !isFetchingNextPage) {
-        void fetchNextPage();
+        if (isNearBottom && hasNextPage && !isFetchingNextPage) {
+          void fetchNextPage();
+        }
       }
-    };
+    },
+    [hasNextPage, fetchNextPage, isFetchingNextPage],
+  );
 
-    scrollElement.addEventListener("scroll", handleScroll);
-    return () => scrollElement.removeEventListener("scroll", handleScroll);
-  }, [hasNextPage, fetchNextPage, isFetchingNextPage]);
-
-  // Scroll to top when activeTab changes
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 0;
-    }
-  }, [activeTab]);
+    handleScroll(scrollRef.current);
+  }, [handleScroll]);
 
   // Update cell value
   const { mutate: updateCell } = api.cell.updateCell.useMutation({
@@ -286,7 +280,11 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
       : 0;
 
   return (
-    <div ref={scrollRef} className="flex-1 overflow-x-auto overflow-y-auto">
+    <div
+      ref={scrollRef}
+      className="h-full overflow-y-auto"
+      onScroll={(e) => handleScroll(e.currentTarget)}
+    >
       <table className="w-full border border-gray-200 text-sm">
         <thead className="sticky -top-0.5 z-10 bg-white">
           {tableInstance.getHeaderGroups().map((headerGroup) => (

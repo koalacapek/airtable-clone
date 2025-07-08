@@ -181,6 +181,7 @@ export const tableRouter = createTRPCRouter({
       const { tableId, limit, cursor, filters, sort } = input;
       // Build where conditions for filtering
       let whereConditions: Prisma.RowWhereInput = { tableId };
+      // If filter conditions exist
 
       if (filters && Object.keys(filters).length > 0) {
         const columns = await ctx.db.column.findMany({
@@ -229,6 +230,7 @@ export const tableRouter = createTRPCRouter({
         }
       }
 
+      // If sort conditions exist
       if (sort && Object.keys(sort).length > 0) {
         const sortEntries = Object.entries(sort);
 
@@ -254,9 +256,7 @@ export const tableRouter = createTRPCRouter({
               const allRows = await ctx.db.row.findMany({
                 where: whereConditions,
                 include: { cells: true },
-                orderBy: { createdAt: "asc" as const },
               });
-
               // Sort by the specific column
               allRows.sort((a, b) => {
                 const aCell = a.cells.find((c) => c.columnId === column.id);
@@ -295,19 +295,21 @@ export const tableRouter = createTRPCRouter({
           }
         }
       }
-
       // If no sorting is applied, use regular pagination
+      console.log(cursor);
       const rows = await ctx.db.row.findMany({
-        where: whereConditions,
+        where: { tableId },
         cursor: cursor ? { id: cursor } : undefined,
         include: { cells: true },
         take: limit + 1,
       });
 
       let nextCursor: string | undefined = undefined;
+      console.log("rows", rows.length);
       if (rows.length > limit) {
         const nextItem = rows.pop();
         nextCursor = nextItem!.id;
+        // console.log("lol", nextCursor);
       }
 
       return {
