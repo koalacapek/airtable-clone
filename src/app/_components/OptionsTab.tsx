@@ -13,6 +13,7 @@ import type { IOptionsTabProps } from "~/type";
 import SortTableButton from "./SortTableButton";
 import { api } from "~/trpc/react";
 import FilterTableButton from "./FilterTableButton";
+import { useCallback } from "react";
 
 const OptionsTab = ({
   activeTab,
@@ -33,6 +34,18 @@ const OptionsTab = ({
       }
     },
   });
+
+  const handleUpdateFilter = useCallback(
+    (filters: Record<string, unknown>) => {
+      if (activeView) {
+        updateView({
+          id: activeView,
+          filters,
+        });
+      }
+    },
+    [activeView, updateView],
+  );
 
   return (
     <div className="flex w-full justify-between p-2 pe-4 pl-5">
@@ -61,14 +74,7 @@ const OptionsTab = ({
         <FilterTableButton
           activeTab={activeTab!}
           filters={viewConditions?.filters}
-          onUpdate={(filters) => {
-            if (activeView) {
-              updateView({
-                id: activeView,
-                filters,
-              });
-            }
-          }}
+          onUpdate={handleUpdateFilter}
         />
         {/* <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <Filter strokeWidth={1.5} size={16} />

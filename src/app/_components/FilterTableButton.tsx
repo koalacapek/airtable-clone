@@ -1,5 +1,6 @@
 import { Filter, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { Input } from "~/components/ui/input";
 
 import {
   Popover,
@@ -21,13 +22,14 @@ const FilterTableButton = ({
   filters,
   onUpdate,
 }: IFilterTableButtonProps) => {
-  const [filterBy, setFilterBy] = useState<string | undefined>(undefined);
-  const [filterOperator, setFilterOperator] = useState<string>("");
-  const [filterValue, setFilterValue] = useState<string>("");
-  const [open, setOpen] = useState(false);
   const [columns, setColumns] = useState<
     { name: string; id: string; type: string }[]
   >([]);
+
+  // Array of filter input states
+  const [filterInputs, setFilterInputs] = useState<
+    { filterBy?: string; filterOperator: string; filterValue: string }[]
+  >([{ filterBy: undefined, filterOperator: "", filterValue: "" }]);
 
   const { data: columnsData } = api.table.getTableMetadata.useQuery(
     {
@@ -41,33 +43,8 @@ const FilterTableButton = ({
   useEffect(() => {
     if (columnsData) {
       setColumns(columnsData.columns);
-      setFilterBy(columnsData.columns[1]?.name ?? "");
     }
-  }, [columnsData, filters]);
-
-  // Parse existing filters
-  const existingFilters = filters
-    ? Object.entries(filters).map(([columnName, config]) => {
-        const filterConfig = config as { op: string; value?: string };
-        return {
-          columnName,
-          op: filterConfig.op,
-          value: filterConfig.value ?? undefined,
-        };
-      })
-    : [];
-
-  const handleRemoveFilter = (columnNameToRemove: string) => {
-    if (filters) {
-      const newfilters = { ...filters };
-      delete newfilters[columnNameToRemove];
-      onUpdate(newfilters);
-    }
-  };
-
-  // Find the selected column object
-  const selectedColumn = columns.find((col) => col.name === filterBy);
-  const isTextColumn = selectedColumn?.type === "TEXT";
+  }, [columnsData]);
 
   // Operator options
   const textOperators = [
@@ -84,139 +61,196 @@ const FilterTableButton = ({
     { value: "greater", label: "greater than" },
     { value: "smaller", label: "less than" },
   ];
-  const operatorOptions = isTextColumn ? textOperators : numberOperators;
 
-  const handleAddFilter = () => {
-    if (filterBy && filterOperator) {
-      const newFilter: Record<string, { op: string; value?: string }> = {};
-      if (filterOperator === "is_empty") {
-        newFilter[filterBy] = { op: "is_empty" };
-      } else if (filterOperator === "is_not_empty") {
-        newFilter[filterBy] = { op: "is_not_empty" };
-      } else {
-        newFilter[filterBy] = { op: filterOperator, value: filterValue };
-      }
-      console.log(filters, newFilter);
-      onUpdate({ ...filters, ...newFilter });
-      setOpen(false);
-      setFilterValue("");
-      setFilterOperator("");
+  // Handle filter input changes
+  const handleFilterInputChange = (
+    index: number,
+    field: string,
+    value: string,
+  ) => {
+    const newInputs = [...filterInputs];
+    const input = newInputs[index];
+    if (!input) return;
+
+    if (
+      field === "filterBy" ||
+      field === "filterOperator" ||
+      field === "filterValue"
+    ) {
+      input[field] = value;
+      setFilterInputs(newInputs);
     }
   };
 
+  // Add a new filter input set
+  const handleAddFilterInput = () => {
+    setFilterInputs([
+      ...filterInputs,
+      { filterBy: undefined, filterOperator: "", filterValue: "" },
+    ]);
+  };
+
+  // Remove a filter input set
+  const handleRemoveFilterInput = (index: number) => {
+    const newInputs = [...filterInputs];
+    const removed = newInputs.splice(index, 1);
+    setFilterInputs(newInputs);
+    // Remove from filters and call onUpdate
+    if (removed[0]?.filterBy) {
+      const newFilters = { ...filters };
+      delete newFilters[removed[0].filterBy];
+      onUpdate(newFilters);
+    }
+  };
+
+  // Debounce update for all filters
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (!filterInputs.length) return;
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      const newFilters: Record<string, { op: string; value?: string }> = {};
+      filterInputs.forEach((input) => {
+        if (!input.filterBy || !input.filterOperator) return;
+        if (
+          input.filterOperator === "is_empty" ||
+          input.filterOperator === "is_not_empty" ||
+          input.filterValue // only apply if value is not empty for value-based ops
+        ) {
+          if (input.filterOperator === "is_empty") {
+            newFilters[input.filterBy] = { op: "is_empty" };
+          } else if (input.filterOperator === "is_not_empty") {
+            newFilters[input.filterBy] = { op: "is_not_empty" };
+          } else {
+            newFilters[input.filterBy] = {
+              op: input.filterOperator,
+              value: input.filterValue,
+            };
+          }
+          onUpdate(newFilters);
+        }
+      });
+    }, 400);
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
+  }, [filterInputs, onUpdate]);
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover>
       <PopoverTrigger>
         <div
           className={`flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer ${
-            existingFilters.length > 0
+            Object.keys(filters ?? {}).length > 0
               ? "bg-orange-1/80"
               : "hover:bg-gray-200/80"
           }`}
         >
           <Filter strokeWidth={1.5} size={16} />
           <p className="text-xs">
-            {existingFilters.length > 0
-              ? `Filtered by ${existingFilters.length} ${
-                  existingFilters.length === 1 ? "field" : "fields"
+            {Object.keys(filters ?? {}).length > 0
+              ? `Filtered by ${Object.keys(filters ?? {}).length} ${
+                  Object.keys(filters ?? {}).length === 1 ? "field" : "fields"
                 }`
               : "Filter"}
           </p>
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-90 space-y-4">
-        {/* Existing Filters Conditions */}
-        {existingFilters.length > 0 && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Current Filters</label>
-            <div className="space-y-2">
-              {existingFilters.map((filter) => (
-                <div
-                  key={filter.columnName}
-                  className="flex items-center justify-between rounded border p-2 text-sm"
+        {/* Render all filter input sets */}
+        {filterInputs.map((input, idx) => {
+          const selectedColumn = columns.find(
+            (col) => col.name === input.filterBy,
+          );
+          const isTextColumn = selectedColumn?.type === "TEXT";
+          const operatorOptions = isTextColumn
+            ? textOperators
+            : numberOperators;
+          return (
+            <div key={idx} className="mb-2 flex w-full items-end gap-x-2">
+              <div className="flex flex-1 flex-col space-y-1">
+                <Select
+                  value={input.filterBy}
+                  onValueChange={(val) =>
+                    handleFilterInputChange(idx, "filterBy", val)
+                  }
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{filter.columnName}</span>
-                    {filter.op}
-                    {filter.value && (
-                      <span className="text-gray-500">{filter.value}</span>
+                  <SelectTrigger className="w-full p-1 text-sm">
+                    {input.filterBy ?? "Column"}
+                  </SelectTrigger>
+                  <SelectContent>
+                    {columns.map(
+                      (column) =>
+                        column.name !== "#" && (
+                          <SelectItem key={column.id} value={column.name}>
+                            {column.name}
+                          </SelectItem>
+                        ),
                     )}
-                  </div>
-                  <button
-                    onClick={() => handleRemoveFilter(filter.columnName)}
-                    className="rounded p-1 hover:cursor-pointer hover:bg-gray-100"
-                  >
-                    <X size={14} className="text-gray-500" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Add New Filter */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Add Filter</label>
-          <div className="flex w-full gap-x-2">
-            <div className="flex flex-1 flex-col space-y-1">
-              <Select
-                value={filterBy}
-                onValueChange={(val) => setFilterBy(val)}
-              >
-                <SelectTrigger className="w-full p-1 text-sm">
-                  {filterBy}
-                </SelectTrigger>
-                <SelectContent>
-                  {columns.map(
-                    (column) =>
-                      column.name !== "#" && (
-                        <SelectItem key={column.id} value={column.name}>
-                          {column.name}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-1 flex-col space-y-1">
+                <Select
+                  value={input.filterOperator}
+                  onValueChange={(val) =>
+                    handleFilterInputChange(idx, "filterOperator", val)
+                  }
+                >
+                  <SelectTrigger className="w-full border p-1 text-sm">
+                    {operatorOptions.find(
+                      (op) => op.value === input.filterOperator,
+                    )?.label ?? "Operator"}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {operatorOptions.map((op) => (
+                        <SelectItem key={op.value} value={op.value}>
+                          {op.label}
                         </SelectItem>
-                      ),
-                  )}
-                </SelectContent>
-              </Select>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Show value input only if operator is not is_empty/is_not_empty */}
+              {input.filterOperator !== "is_empty" &&
+                input.filterOperator !== "is_not_empty" && (
+                  <div className="flex flex-1 flex-col space-y-1">
+                    <Input
+                      className="w-full rounded-sm border p-1 text-sm"
+                      type={isTextColumn ? "text" : "number"}
+                      value={input.filterValue}
+                      onChange={(e) =>
+                        handleFilterInputChange(
+                          idx,
+                          "filterValue",
+                          e.target.value,
+                        )
+                      }
+                      placeholder={
+                        isTextColumn ? "Enter value" : "Enter number"
+                      }
+                    />
+                  </div>
+                )}
+              <button
+                type="button"
+                className="ml-2 rounded bg-gray-200 px-2 py-1 text-xs hover:bg-gray-300"
+                onClick={() => handleRemoveFilterInput(idx)}
+              >
+                Remove
+              </button>
             </div>
-            <div className="flex flex-1 flex-col space-y-1">
-              <Select value={filterOperator} onValueChange={setFilterOperator}>
-                <SelectTrigger className="w-full border p-1 text-sm">
-                  {operatorOptions.find((op) => op.value === filterOperator)
-                    ?.label ?? "Select operator"}
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {operatorOptions.map((op) => (
-                      <SelectItem key={op.value} value={op.value}>
-                        {op.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            {/* Show value input only if operator is not is_empty/is_not_empty */}
-            {filterOperator !== "is_empty" &&
-              filterOperator !== "is_not_empty" && (
-                <div className="flex flex-1 flex-col space-y-1">
-                  <input
-                    className="w-full rounded border p-1 text-sm"
-                    type={isTextColumn ? "text" : "number"}
-                    value={filterValue}
-                    onChange={(e) => setFilterValue(e.target.value)}
-                    placeholder={isTextColumn ? "Enter value" : "Enter number"}
-                  />
-                </div>
-              )}
-          </div>
-
-          <button
-            onClick={handleAddFilter}
-            className="mt-2 w-full rounded bg-blue-600 py-1 text-sm text-white hover:bg-blue-700"
-          >
-            Add Filter
-          </button>
-        </div>
+          );
+        })}
+        <button
+          type="button"
+          className="w-full rounded bg-blue-600 py-1 text-sm text-white hover:bg-blue-700"
+          onClick={handleAddFilterInput}
+        >
+          Add Filter
+        </button>
       </PopoverContent>
     </Popover>
   );
