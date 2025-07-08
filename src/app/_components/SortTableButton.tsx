@@ -1,4 +1,4 @@
-import { SortAsc, Trash2, X } from "lucide-react";
+import { SortAsc, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
