@@ -167,7 +167,10 @@ const FilterTableButton = ({
             ? textOperators
             : numberOperators;
           return (
-            <div key={idx} className="mb-2 flex w-full items-end gap-x-2">
+            <div
+              key={idx}
+              className="mb-2 flex w-full items-center justify-center gap-x-2"
+            >
               <div className="flex flex-1 flex-col space-y-1">
                 <Select
                   value={input.filterBy}
@@ -235,11 +238,10 @@ const FilterTableButton = ({
                   </div>
                 )}
               <button
-                type="button"
-                className="ml-2 rounded bg-gray-200 px-2 py-1 text-xs hover:bg-gray-300"
                 onClick={() => handleRemoveFilterInput(idx)}
+                className="rounded p-1 hover:cursor-pointer hover:bg-gray-100"
               >
-                Remove
+                <X size={14} className="text-gray-500" />
               </button>
             </div>
           );
