@@ -20,6 +20,7 @@ model Base {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   tables    Table[]
+  views     View[]
   createdAt DateTime @default(now())
 
 }
@@ -70,8 +71,10 @@ model Cell {
 model View {
   id        String   @id @default(cuid())
   name      String
-  tableId   String
-  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId   String?  // Optional for base-level views
+  baseId    String?  // Optional for table-specific views
+  table     Table?   @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  base      Base?    @relation(fields: [baseId], references: [id], onDelete: Cascade)
   filters   Json     // store filter config as JSON
   sort      Json     // store sort config as JSON
   hiddenColumns Json // column ids hidden

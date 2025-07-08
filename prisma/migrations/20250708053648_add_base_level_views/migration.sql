@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "View" ADD COLUMN     "baseId" TEXT,
+ALTER COLUMN "tableId" DROP NOT NULL;
+
+-- AddForeignKey
+ALTER TABLE "View" ADD CONSTRAINT "View_baseId_fkey" FOREIGN KEY ("baseId") REFERENCES "Base"("id") ON DELETE CASCADE ON UPDATE CASCADE;

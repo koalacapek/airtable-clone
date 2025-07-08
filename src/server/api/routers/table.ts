@@ -3,6 +3,7 @@ import { z } from "zod";
 import { faker } from "@faker-js/faker";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import type { Prisma } from "@prisma/client";
 
 export const tableRouter = createTRPCRouter({
   getAllByBase: protectedProcedure
@@ -138,12 +139,28 @@ export const tableRouter = createTRPCRouter({
       return table;
     }),
   getTableMetadata: protectedProcedure
-    .input(z.object({ tableId: z.string() }))
+    .input(
+      z.object({
+        tableId: z.string(),
+        hiddenColumns: z.array(z.string()).optional(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
-      return await ctx.db.table.findUnique({
+      const table = await ctx.db.table.findUnique({
         where: { id: input.tableId },
         include: { columns: true },
       });
+
+      if (!table) return null;
+
+      // Filter out hidden columns if provided
+      if (input.hiddenColumns && input.hiddenColumns.length > 0) {
+        table.columns = table.columns.filter(
+          (col) => !input.hiddenColumns!.includes(col.id),
+        );
+      }
+
+      return table;
     }),
 
   // Infinite query for table data
@@ -155,22 +172,136 @@ export const tableRouter = createTRPCRouter({
         cursor: z.string().optional(),
         sortBy: z.string().optional(),
         sortOrder: z.enum(["asc", "desc"]).optional(),
+        filters: z.record(z.any()).optional(),
+        sort: z.record(z.any()).optional(),
+        hiddenColumns: z.array(z.string()).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      // const { tableId, limit, cursor, sortBy, sortOrder } = input;
-      const { tableId, limit, cursor } = input;
+      const { tableId, limit, cursor, filters, sort } = input;
+      // Build where conditions for filtering
+      let whereConditions: Prisma.RowWhereInput = { tableId };
 
+      if (filters && Object.keys(filters).length > 0) {
+        const columns = await ctx.db.column.findMany({
+          where: { tableId },
+        });
+
+        // For each filter, we need to check if the row has a cell with the matching value
+        const filterConditions: Prisma.RowWhereInput[] = Object.entries(filters)
+          .map(([columnName, filterConfig]) => {
+            const column = columns.find((col) => col.name === columnName);
+            if (!column) return null;
+
+            if (
+              filterConfig &&
+              typeof filterConfig === "object" &&
+              filterConfig !== null &&
+              "value" in filterConfig
+            ) {
+              const filterValue = (filterConfig as { value: string }).value;
+              if (filterValue) {
+                return {
+                  cells: {
+                    some: {
+                      columnId: column.id,
+                      value: {
+                        contains: filterValue,
+                        mode: "insensitive" as const,
+                      },
+                    },
+                  },
+                } as Prisma.RowWhereInput;
+              }
+            }
+            return null;
+          })
+          .filter(
+            (condition): condition is Prisma.RowWhereInput =>
+              condition !== null,
+          );
+
+        if (filterConditions.length > 0) {
+          whereConditions = {
+            ...whereConditions,
+            AND: filterConditions,
+          };
+        }
+      }
+
+      if (sort && Object.keys(sort).length > 0) {
+        const sortEntries = Object.entries(sort);
+
+        if (sortEntries.length > 0) {
+          const firstSortEntry = sortEntries[0];
+          if (firstSortEntry) {
+            const [columnName, sortConfig] = firstSortEntry as [
+              string,
+              { direction: "asc" | "desc" },
+            ];
+            const sortDirection = sortConfig?.direction ?? "asc";
+
+            // Get the column for sorting
+            const columns = await ctx.db.column.findMany({
+              where: { tableId: tableId },
+            });
+            const column = columns.find((col) => col.name === columnName);
+
+            if (column) {
+              // For sorting by cell values, we need to use a different approach
+              // Since we can't directly sort by related table values in Prisma,
+              // we'll fetch all rows and sort them in memory, but with proper pagination
+              const allRows = await ctx.db.row.findMany({
+                where: whereConditions,
+                include: { cells: true },
+                orderBy: { createdAt: "asc" as const },
+              });
+
+              // Sort by the specific column
+              allRows.sort((a, b) => {
+                const aCell = a.cells.find((c) => c.columnId === column.id);
+                const bCell = b.cells.find((c) => c.columnId === column.id);
+
+                const aValue = aCell?.value ?? "";
+                const bValue = bCell?.value ?? "";
+
+                if (sortDirection === "asc") {
+                  return aValue.localeCompare(bValue);
+                } else {
+                  return bValue.localeCompare(aValue);
+                }
+              });
+
+              // Apply pagination
+              const startIndex = cursor
+                ? allRows.findIndex((row) => row.id === cursor) + 1
+                : 0;
+              const paginatedRows = allRows.slice(
+                startIndex,
+                startIndex + limit + 1,
+              );
+
+              let nextCursor: string | undefined = undefined;
+              if (paginatedRows.length > limit) {
+                const nextItem = paginatedRows.pop();
+                nextCursor = nextItem!.id;
+              }
+
+              return {
+                rows: paginatedRows,
+                nextCursor,
+              };
+            }
+          }
+        }
+      }
+
+      // If no sorting is applied, use regular pagination
       const rows = await ctx.db.row.findMany({
-        where: {
-          tableId,
-        },
+        where: whereConditions,
         cursor: cursor ? { id: cursor } : undefined,
         include: { cells: true },
         take: limit + 1,
-        // orderBy: sortBy
-        //   ? { [sortBy]: sortOrder ?? "asc" }
-        //   : { createdAt: "asc" as const },
       });
 
       let nextCursor: string | undefined = undefined;
