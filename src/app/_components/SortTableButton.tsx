@@ -1,4 +1,4 @@
-import { SortAsc, X, Trash2 } from "lucide-react";
+import { SortAsc, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -14,16 +14,13 @@ import {
   SelectTrigger,
 } from "~/components/ui/select";
 import { api } from "~/trpc/react";
+import type { ISortTableButtonProps } from "~/type";
 
 const SortTableButton = ({
   activeTab,
   sortConditions,
   onUpdate,
-}: {
-  activeTab: string;
-  sortConditions: Record<string, unknown> | undefined;
-  onUpdate: (sortConditions: Record<string, unknown>) => void;
-}) => {
+}: ISortTableButtonProps) => {
   const [sortBy, setSortBy] = useState<string | undefined>(undefined);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [open, setOpen] = useState(false);

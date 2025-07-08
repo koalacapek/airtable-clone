@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Eye, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { Plus, Eye, MoreHorizontal, Edit, Trash2, Grid } from "lucide-react";
 import { api } from "~/trpc/react";
 import type { IViewsSidebarProps } from "~/type";
 import {
@@ -60,6 +60,8 @@ const ViewsSidebar = ({
         setNewViewName("");
         setIsCreating(false);
         setActiveView(newView.id);
+      },
+      onSettled: () => {
         void utils.view.getAllByBase.invalidate({ baseId: baseId! });
       },
     });
@@ -70,6 +72,8 @@ const ViewsSidebar = ({
       if (activeView) {
         setActiveView(null);
       }
+    },
+    onSettled: () => {
       void utils.view.getAllByBase.invalidate({ baseId: baseId! });
     },
   });
@@ -88,17 +92,17 @@ const ViewsSidebar = ({
   };
 
   return (
-    <div className="w-64 border-l border-gray-200 bg-gray-50 p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-900">Views</h3>
+    <div className="w-64 border p-4">
+      <div className="mb-4 flex items-center rounded-sm py-1 hover:cursor-pointer hover:bg-gray-200">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setIsCreating(true)}
           className="h-6 w-6 p-0"
         >
-          <Plus size={14} />
+          <Plus size={14} strokeWidth={1.5} />
         </Button>
+        <h3 className="text-xs font-medium text-gray-900">Create new...</h3>
       </div>
 
       {isCreating && (
@@ -152,17 +156,15 @@ const ViewsSidebar = ({
             <div
               key={view.id}
               className={`group flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-gray-200 ${
-                activeView === view.id
-                  ? "bg-blue-100 text-blue-900"
-                  : "text-gray-700"
+                activeView === view.id ? "bg-gray-200" : "text-gray-700"
               }`}
             >
               <button
                 onClick={() => setActiveView(view.id)}
                 className="flex flex-1 items-center gap-2 truncate"
               >
-                <Eye size={14} />
-                <span className="truncate">{view.name}</span>
+                <Grid size={14} strokeWidth={1.5} />
+                <span className="truncate text-xs">{view.name}</span>
               </button>
 
               <DropdownMenu>

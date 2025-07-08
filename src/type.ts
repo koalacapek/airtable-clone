@@ -78,3 +78,9 @@ export interface IViewsSidebarProps {
     } | null,
   ) => void;
 }
+
+export interface ISortTableButtonProps {
+  activeTab: string;
+  sortConditions: Record<string, unknown> | undefined;
+  onUpdate: (sortConditions: Record<string, unknown>) => void;
+}
