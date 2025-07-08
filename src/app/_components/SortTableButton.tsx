@@ -39,7 +39,6 @@ const SortTableButton = ({
   );
 
   useEffect(() => {
-    console.log(sortConditions);
     if (columnsData) {
       setColumns(columnsData.columns);
       setSortBy(columnsData.columns[1]?.name ?? "");
