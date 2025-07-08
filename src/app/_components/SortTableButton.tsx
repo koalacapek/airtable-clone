@@ -78,9 +78,19 @@ const SortTableButton = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger>
-        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
+        <div
+          className={`flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer ${
+            existingSorts.length > 0 ? "bg-orange-1/80" : "hover:bg-gray-200/80"
+          }`}
+        >
           <SortAsc strokeWidth={1.5} size={16} />
-          <p className="text-xs">Sort</p>
+          <p className="text-xs">
+            {existingSorts.length > 0
+              ? `Sorted by ${existingSorts.length} ${
+                  existingSorts.length === 1 ? "field" : "fields"
+                }`
+              : "Sort"}
+          </p>
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-90 space-y-4">
