@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Eye, MoreHorizontal, Edit, Trash2, Grid } from "lucide-react";
+import { Plus, MoreHorizontal, Edit, Trash2, Grid } from "lucide-react";
 import { api } from "~/trpc/react";
 import type { IViewsSidebarProps } from "~/type";
 import {
