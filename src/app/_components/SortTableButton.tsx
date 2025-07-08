@@ -1,4 +1,4 @@
-import { SortAsc, Trash2 } from "lucide-react";
+import { SortAsc, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import {
@@ -24,7 +24,9 @@ const SortTableButton = ({
   const [sortBy, setSortBy] = useState<string | undefined>(undefined);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [open, setOpen] = useState(false);
-  const [columns, setColumns] = useState<{ name: string; id: string }[]>([]);
+  const [columns, setColumns] = useState<
+    { name: string; id: string; type: string }[]
+  >([]);
 
   const { data: columnsData } = api.table.getTableMetadata.useQuery(
     {
@@ -72,6 +74,10 @@ const SortTableButton = ({
     }
   };
 
+  // Find the selected column object
+  const selectedColumn = columns.find((col) => col.name === sortBy);
+  const isTextColumn = selectedColumn?.type === "TEXT";
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger>
@@ -109,9 +115,9 @@ const SortTableButton = ({
                   </div>
                   <button
                     onClick={() => handleRemoveSort(sort.columnName)}
-                    className="rounded p-1 hover:bg-gray-100"
+                    className="rounded p-1 hover:cursor-pointer hover:bg-gray-100"
                   >
-                    <Trash2 size={14} className="text-gray-500" />
+                    <X size={14} className="text-gray-500" />
                   </button>
                 </div>
               ))}
@@ -146,12 +152,22 @@ const SortTableButton = ({
                 onValueChange={(val) => setSortOrder(val as "asc" | "desc")}
               >
                 <SelectTrigger className="w-full border p-1 text-sm">
-                  {sortOrder === "asc" ? "Ascending" : "Descending"}
+                  {isTextColumn
+                    ? sortOrder === "asc"
+                      ? "A-Z"
+                      : "Z-A"
+                    : sortOrder === "asc"
+                      ? "Ascending"
+                      : "Descending"}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    <SelectItem value="asc">Ascending</SelectItem>
-                    <SelectItem value="desc">Descending</SelectItem>
+                    <SelectItem value="asc">
+                      {isTextColumn ? "A-Z" : "Ascending"}
+                    </SelectItem>
+                    <SelectItem value="desc">
+                      {isTextColumn ? "Z-A" : "Descending"}
+                    </SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>

@@ -68,7 +68,6 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
   const data: TableRow[] = useMemo(() => {
     if (!tableMetadata || !allRows.length) return [];
 
-    console.log("allRows", allRows.length);
     return allRows.map((row, globalIndex) => {
       const rowData = {} as TableRow;
       rowData.id = row.id;
@@ -172,7 +171,9 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
     },
 
     onSettled: (_data, _err, _input) => {
-      void utils.cell.getAll.invalidate({ tableId: _input.tableId });
+      void utils.table.getTableWithDataInfinite.invalidate({
+        tableId: _input.tableId,
+      });
     },
   });
 
