@@ -20,7 +20,7 @@ import { Plus } from "lucide-react";
 
 import AddColumnPopover from "./AddColumnPopover";
 
-const Table = ({ activeTab }: ITableProps) => {
+const Table = ({ activeTab, viewConditions }: ITableProps) => {
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnType, setNewColumnType] = useState<"TEXT" | "NUMBER">("TEXT");
   const utils = api.useUtils();
@@ -28,7 +28,10 @@ const Table = ({ activeTab }: ITableProps) => {
 
   // Get table metadata (columns)
   const { data: tableMetadata } = api.table.getTableMetadata.useQuery(
-    { tableId: activeTab! },
+    {
+      tableId: activeTab!,
+      hiddenColumns: viewConditions?.hiddenColumns ?? [],
+    },
     {
       enabled: !!activeTab,
     },
@@ -45,6 +48,9 @@ const Table = ({ activeTab }: ITableProps) => {
     {
       tableId: activeTab!,
       limit: 50,
+      filters: viewConditions?.filters ?? {},
+      sort: viewConditions?.sort ?? {},
+      hiddenColumns: viewConditions?.hiddenColumns ?? [],
     },
     {
       enabled: !!activeTab,

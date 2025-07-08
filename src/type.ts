@@ -37,8 +37,44 @@ export interface ICellProps {
 
 export interface ITableProps {
   activeTab?: string | null;
+  viewConditions?: {
+    filters: Record<string, unknown>;
+    sort: Record<string, unknown>;
+    hiddenColumns: string[];
+  } | null;
 }
 
 export interface IOptionsTabProps {
   activeTab?: string | null;
+  viewConditions?: {
+    filters: Record<string, unknown>;
+    sort: Record<string, unknown>;
+    hiddenColumns: string[];
+  } | null;
+  activeView: string | null;
+  baseId?: string;
+}
+
+export interface IView {
+  id: string;
+  name: string;
+  tableId?: string;
+  baseId?: string;
+  filters: Record<string, unknown>;
+  sort: Record<string, unknown>;
+  hiddenColumns: string[];
+  createdAt: Date;
+}
+
+export interface IViewsSidebarProps {
+  baseId: string | null;
+  activeView: string | null;
+  setActiveView: React.Dispatch<React.SetStateAction<string | null>>;
+  onViewChange: (
+    viewConditions: {
+      filters: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      hiddenColumns: string[];
+    } | null,
+  ) => void;
 }

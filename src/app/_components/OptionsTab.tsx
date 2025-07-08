@@ -12,8 +12,28 @@ import {
 } from "lucide-react";
 import type { IOptionsTabProps } from "~/type";
 import SortTableButton from "./SortTableButton";
+import { api } from "~/trpc/react";
 
-const OptionsTab = ({ activeTab }: IOptionsTabProps) => {
+const OptionsTab = ({
+  activeTab,
+  viewConditions,
+  activeView,
+  baseId,
+}: IOptionsTabProps) => {
+  const utils = api.useUtils();
+  const { mutate: updateView } = api.view.update.useMutation({
+    onSuccess: async () => {
+      // Invalidate all table data queries for this table to ensure UI updates
+      // We need to invalidate all possible parameter combinations
+      await utils.table.getTableWithDataInfinite.invalidate();
+      await utils.table.getTableMetadata.invalidate({ tableId: activeTab! });
+      // Also invalidate the view queries to ensure the sidebar updates
+      if (baseId) {
+        await utils.view.getAllByBase.invalidate({ baseId });
+      }
+    },
+  });
+
   return (
     <div className="flex w-full justify-between p-2 pe-4 pl-5">
       {/* Grid */}
@@ -50,7 +70,18 @@ const OptionsTab = ({ activeTab }: IOptionsTabProps) => {
         </div>
 
         {/* Sort */}
-        <SortTableButton activeTab={activeTab!} />
+        <SortTableButton
+          activeTab={activeTab!}
+          sortConditions={viewConditions?.sort}
+          onUpdate={(sortConditions) => {
+            if (activeView) {
+              updateView({
+                id: activeView,
+                sort: sortConditions,
+              });
+            }
+          }}
+        />
 
         {/* Color */}
         <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
