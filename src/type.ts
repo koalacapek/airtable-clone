@@ -90,3 +90,9 @@ export interface IFilterTableButtonProps {
   filters: Record<string, unknown> | undefined;
   onUpdate: (filters: Record<string, unknown>) => void;
 }
+
+export interface IHideFieldsButtonProps {
+  activeTab: string;
+  hiddenFields: string[];
+  onUpdate: (hiddenFields: string[]) => void;
+}

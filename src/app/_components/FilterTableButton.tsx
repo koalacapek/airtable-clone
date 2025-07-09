@@ -142,7 +142,7 @@ const FilterTableButton = ({
         <div
           className={`flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer ${
             Object.keys(filters ?? {}).length > 0
-              ? "bg-orange-1/80"
+              ? "bg-green-200/80"
               : "hover:bg-gray-200/80"
           }`}
         >

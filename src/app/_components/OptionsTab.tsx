@@ -1,7 +1,6 @@
 import {
   ArrowUpNarrowWide,
   ChevronDown,
-  EyeOff,
   LayoutGrid,
   LayoutPanelTop,
   Menu,
@@ -14,6 +13,7 @@ import SortTableButton from "./SortTableButton";
 import { api } from "~/trpc/react";
 import FilterTableButton from "./FilterTableButton";
 import { useCallback } from "react";
+import HideFieldsButton from "./HideFieldsButton";
 
 const OptionsTab = ({
   activeTab,
@@ -47,6 +47,19 @@ const OptionsTab = ({
     [activeView, updateView],
   );
 
+  // For hidden fields update, getTableMetada excluding hidden columns
+  const handleUpdateHiddenFields = useCallback(
+    (hiddenFields: string[]) => {
+      if (activeView) {
+        updateView({
+          id: activeView,
+          hiddenColumns: hiddenFields,
+        });
+      }
+    },
+    [activeView, updateView],
+  );
+
   return (
     <div className="flex w-full justify-between p-2 pe-4 pl-5">
       {/* Grid */}
@@ -65,10 +78,15 @@ const OptionsTab = ({
       {/* Filter, Sort, etc. */}
       <div className="flex items-center gap-x-3">
         {/* Visibility */}
-        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
+        {/* <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <EyeOff strokeWidth={1.5} size={16} />
           <p className="text-xs">Hide fields</p>
-        </div>
+        </div> */}
+        <HideFieldsButton
+          activeTab={activeTab!}
+          hiddenFields={viewConditions?.hiddenColumns ?? []}
+          onUpdate={handleUpdateHiddenFields}
+        />
 
         {/* Filter */}
         <FilterTableButton
