@@ -4,39 +4,6 @@ import { ColumnType } from "@prisma/client";
 import { useState, useEffect } from "react";
 import type { ICellProps } from "~/type";
 
-// Helper function to highlight search matches
-const highlightSearchMatch = (
-  text: string,
-  searchValue: string,
-  isCurrentMatch = false,
-) => {
-  if (!searchValue || searchValue.trim() === "") return text;
-
-  const regex = new RegExp(
-    `(${searchValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-    "gi",
-  );
-  const parts = text.split(regex);
-
-  return parts.map((part, index) => {
-    if (regex.test(part)) {
-      return (
-        <mark
-          key={index}
-          className={`rounded px-1 ${
-            isCurrentMatch
-              ? "border-2 border-orange-500 bg-orange-300"
-              : "bg-yellow-200"
-          }`}
-        >
-          {part}
-        </mark>
-      );
-    }
-    return part;
-  });
-};
-
 interface ICellPropsWithMatch extends ICellProps {
   isMatch?: boolean;
   isCurrentMatch?: boolean;
@@ -47,7 +14,6 @@ const Cell = ({
   onUpdate,
   colType,
   readOnly = false,
-  searchValue = "",
   isMatch = false,
   isCurrentMatch = false,
 }: ICellPropsWithMatch) => {
@@ -62,24 +28,30 @@ const Cell = ({
   };
 
   if (readOnly) {
-    if (isMatch) {
-      return (
-        <span>
-          {highlightSearchMatch(cellData.value, searchValue, isCurrentMatch)}
-        </span>
-      );
-    }
-    return <span>{cellData.value}</span>;
+    return (
+      <span
+        className={`${isMatch ? "bg-yellow-200" : ""} ${
+          isCurrentMatch ? "bg-orange-400" : ""
+        }`}
+      >
+        {cellData.value}
+      </span>
+    );
   }
 
+  // For input fields, show highlighted background when there's a match
   return (
-    <input
-      type={colType === ColumnType.NUMBER ? "number" : "text"}
-      className="focus:border-blue-1 w-full border-none outline-none"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={handleBlur}
-    />
+    <div className="relative w-full">
+      <input
+        type={colType === ColumnType.NUMBER ? "number" : "text"}
+        className={`focus:border-blue-1 w-full border-none outline-none ${
+          isMatch ? "bg-yellow-200" : ""
+        } ${isCurrentMatch ? "bg-orange-400" : ""}`}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={handleBlur}
+      />
+    </div>
   );
 };
 
