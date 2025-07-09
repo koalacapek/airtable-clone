@@ -14,12 +14,16 @@ import { api } from "~/trpc/react";
 import FilterTableButton from "./FilterTableButton";
 import { useCallback } from "react";
 import HideFieldsButton from "./HideFieldsButton";
+import SearchTableButton from "./SearchTableButton";
 
 const OptionsTab = ({
   activeTab,
   viewConditions,
   activeView,
   baseId,
+  searchValue,
+  onSearchChange,
+  matchingCells,
 }: IOptionsTabProps) => {
   const utils = api.useUtils();
   const { mutate: updateView } = api.view.update.useMutation({
@@ -137,9 +141,19 @@ const OptionsTab = ({
         </div>
 
         {/* Search */}
-        <div className="flex items-center justify-center gap-x-1.5 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
-          <Search strokeWidth={1.5} size={16} />
-        </div>
+        <SearchTableButton
+          activeTab={activeTab!}
+          searchValue={searchValue}
+          onUpdate={onSearchChange!}
+          totalMatches={matchingCells?.length ?? 0}
+          currentMatchIndex={0}
+          onNextMatch={() => {
+            console.log("next match");
+          }}
+          onPrevMatch={() => {
+            console.log("prev match");
+          }}
+        />
       </div>
     </div>
   );

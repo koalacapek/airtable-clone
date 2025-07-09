@@ -16,11 +16,33 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     sort: Record<string, unknown>;
     hiddenColumns: string[];
   } | null>(null);
+  const [searchValue, setSearchValue] = useState<string>("");
+  const [matchingCells, setMatchingCells] = useState<
+    {
+      id: string;
+      rowId: string;
+      columnId: string;
+    }[]
+  >([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 
   // Fetch tables
   const { data: tables } = api.table.getAllByBase.useQuery({
     baseId,
   });
+
+  const { data: cells } = api.table.getMatchingCellIds.useQuery(
+    activeTab && searchValue && searchValue.trim() !== ""
+      ? { tableId: activeTab, searchValue }
+      : { tableId: "", searchValue: "" },
+    { enabled: !!activeTab && !!searchValue && searchValue.trim() !== "" },
+  );
+
+  console.log(cells);
+
+  useEffect(() => {
+    setMatchingCells(cells ?? []);
+  }, [cells]);
 
   useEffect(() => {
     // Only set if activeTab hasn't been set yet
@@ -41,6 +63,21 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     },
     [],
   );
+
+  const handleNextMatch = () => {
+    if (matchingCells.length > 0) {
+      setCurrentMatchIndex((prev) => (prev + 1) % matchingCells.length);
+    }
+  };
+
+  const handlePrevMatch = () => {
+    if (matchingCells.length > 0) {
+      setCurrentMatchIndex(
+        (prev) => (prev - 1 + matchingCells.length) % matchingCells.length,
+      );
+    }
+  };
+
   if (!tables) {
     return (
       <div className="flex h-full items-center justify-center p-10">
@@ -57,6 +94,12 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
         viewConditions={viewConditions}
         activeView={activeView}
         baseId={baseId}
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+        matchingCells={matchingCells}
+        currentMatchIndex={currentMatchIndex}
+        onNextMatch={handleNextMatch}
+        onPrevMatch={handlePrevMatch}
       />
       <div className="flex flex-1 overflow-hidden">
         <ViewsSidebar
@@ -66,7 +109,16 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
           onViewChange={handleViewChange}
         />
         <div className="flex-1 overflow-auto">
-          <Table activeTab={activeTab} viewConditions={viewConditions} />
+          <Table
+            activeTab={activeTab}
+            viewConditions={viewConditions}
+            searchValue={searchValue}
+            matchingCells={matchingCells}
+            currentMatchIndex={currentMatchIndex}
+            onMatchInfoChange={(totalMatches, currentIndex) => {
+              setCurrentMatchIndex(currentIndex);
+            }}
+          />
         </div>
       </div>
     </div>

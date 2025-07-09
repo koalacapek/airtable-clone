@@ -181,8 +181,8 @@ export const tableRouter = createTRPCRouter({
       const { tableId, limit, cursor, filters, sort } = input;
       // Build where conditions for filtering
       let whereConditions: Prisma.RowWhereInput = { tableId };
-      // If filter conditions exist
 
+      // If filter conditions exist
       if (filters && Object.keys(filters).length > 0) {
         const columns = await ctx.db.column.findMany({
           where: { tableId },
@@ -402,5 +402,31 @@ export const tableRouter = createTRPCRouter({
         rows,
         nextCursor,
       };
+    }),
+  getMatchingCellIds: protectedProcedure
+    .input(
+      z.object({
+        tableId: z.string(),
+        searchValue: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { tableId, searchValue } = input;
+      if (!searchValue || searchValue.trim() === "") return [];
+      const cells = await ctx.db.cell.findMany({
+        where: {
+          row: { tableId },
+          value: {
+            contains: searchValue.trim(),
+            mode: "insensitive",
+          },
+        },
+        select: {
+          id: true,
+          rowId: true,
+          columnId: true,
+        },
+      });
+      return cells;
     }),
 });

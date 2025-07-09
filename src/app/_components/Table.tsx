@@ -20,7 +20,14 @@ import { Plus } from "lucide-react";
 
 import AddColumnPopover from "./AddColumnPopover";
 
-const Table = ({ activeTab, viewConditions }: ITableProps) => {
+const Table = ({
+  activeTab,
+  viewConditions,
+  searchValue,
+  matchingCells = [],
+  currentMatchIndex = 0,
+  onMatchInfoChange,
+}: ITableProps) => {
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnType, setNewColumnType] = useState<"TEXT" | "NUMBER">("TEXT");
   const utils = api.useUtils();
@@ -101,31 +108,7 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
     overscan: 5,
   });
 
-  // Load more data when scrolling near the end
-  // useEffect(() => {
-  //   const virtualItems = virtualizer.getVirtualItems();
-
-  //   if (virtualItems.length === 0) return;
-
-  //   const lastItem = virtualItems[virtualItems.length - 1];
-  //   if (!lastItem) return;
-
-  //   const shouldLoadMore =
-  //     lastItem.index >= data.length - 5 && hasNextPage && !isFetchingNextPage;
-
-  //   if (shouldLoadMore) {
-  //     void fetchNextPage();
-  //   }
-  // }, [
-  //   hasNextPage,
-  //   fetchNextPage,
-  //   data.length,
-  //   isFetchingNextPage,
-  //   virtualizer,
-  // ]);
-
-  // Backup scroll event listener for infinite scrolling
-
+  // When scrolling to near bottom and has nextpage, fetch next page
   const handleScroll = useCallback(
     (containerRefElement?: HTMLDivElement | null) => {
       if (containerRefElement) {
@@ -221,6 +204,29 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
     setNewColumnType("TEXT");
   }, [activeTab, newColumnName, newColumnType, createColumn]);
 
+  // For navigation, flatten the matches in row/col order
+  const matchPositions = useMemo(() => {
+    if (!matchingCells?.length || !tableMetadata) return [];
+    // Map: rowId+columnId => index
+    const colOrder = tableMetadata.columns.map((col) => col.id);
+    return matchingCells
+      .map((cell) => {
+        const rowIdx = allRows.findIndex((row) => row.id === cell.rowId);
+        const colIdx = colOrder.indexOf(cell.columnId);
+        return { ...cell, rowIdx, colIdx };
+      })
+      .filter((pos) => pos.rowIdx !== -1 && pos.colIdx !== -1)
+      .sort((a, b) =>
+        a.rowIdx !== b.rowIdx ? a.rowIdx - b.rowIdx : a.colIdx - b.colIdx,
+      );
+  }, [matchingCells, allRows, tableMetadata]);
+
+  useEffect(() => {
+    if (onMatchInfoChange) {
+      onMatchInfoChange(matchPositions.length, currentMatchIndex);
+    }
+  }, [currentMatchIndex, matchPositions.length, onMatchInfoChange]);
+
   const columns: ColumnDef<TableRow>[] = useMemo(() => {
     if (!tableMetadata) return [];
 
@@ -233,7 +239,14 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
         cell: ({ row }: { row: Row<TableRow> }) => {
           const cellData: Cell = row.getValue(col.name);
           const column = tableMetadata.columns.find((c) => c.name === col.name);
-
+          // Find if this cell is a match
+          const isMatch = matchingCells?.some(
+            (mc) => mc.id === cellData.cellId,
+          );
+          // Find the index in matchPositions
+          const matchIdx = matchPositions.findIndex(
+            (mc) => mc.id === cellData.cellId,
+          );
           return (
             <CellComponent
               readOnly={isReadOnly}
@@ -245,12 +258,22 @@ const Table = ({ activeTab, viewConditions }: ITableProps) => {
               onUpdate={(newValue: string, cellId: string) =>
                 handleUpdate(newValue, cellId)
               }
+              searchValue={searchValue}
+              isMatch={isMatch}
+              isCurrentMatch={matchIdx === currentMatchIndex && isMatch}
             />
           );
         },
       };
     });
-  }, [tableMetadata, handleUpdate]);
+  }, [
+    tableMetadata,
+    handleUpdate,
+    matchingCells,
+    matchPositions,
+    searchValue,
+    currentMatchIndex,
+  ]);
 
   const tableInstance = useReactTable({
     data,

@@ -33,6 +33,7 @@ export interface ICellProps {
   cellData: CellType;
   onUpdate: (value: string, cellId: string) => void;
   readOnly: boolean;
+  searchValue?: string;
 }
 
 export interface ITableProps {
@@ -42,6 +43,14 @@ export interface ITableProps {
     sort: Record<string, unknown>;
     hiddenColumns: string[];
   } | null;
+  searchValue?: string;
+  matchingCells?: {
+    id: string;
+    rowId: string;
+    columnId: string;
+  }[];
+  currentMatchIndex?: number;
+  onMatchInfoChange?: (totalMatches: number, currentIndex: number) => void;
 }
 
 export interface IOptionsTabProps {
@@ -53,6 +62,16 @@ export interface IOptionsTabProps {
   } | null;
   activeView: string | null;
   baseId?: string;
+  searchValue?: string;
+  onSearchChange?: (searchValue: string) => void;
+  matchingCells?: {
+    id: string;
+    rowId: string;
+    columnId: string;
+  }[];
+  currentMatchIndex?: number;
+  onNextMatch?: () => void;
+  onPrevMatch?: () => void;
 }
 
 export interface IView {
@@ -95,4 +114,14 @@ export interface IHideFieldsButtonProps {
   activeTab: string;
   hiddenFields: string[];
   onUpdate: (hiddenFields: string[]) => void;
+}
+
+export interface ISearchTableButtonProps {
+  activeTab: string;
+  searchValue?: string;
+  onUpdate: (searchValue: string) => void;
+  totalMatches?: number;
+  currentMatchIndex?: number;
+  onNextMatch?: () => void;
+  onPrevMatch?: () => void;
 }
