@@ -77,21 +77,24 @@ const Table = ({
     return allRows.map((row, globalIndex) => {
       const rowData = {} as TableRow;
       rowData.id = row.id;
-      row.cells.forEach((cell) => {
-        const col = tableMetadata.columns.find((c) => c.id === cell.columnId);
-        if (col) {
-          // For the # column, use the global index + 1
-          if (col.name === "#") {
-            rowData[col.name] = {
-              value: (globalIndex + 1).toString(),
-              cellId: cell.id,
-            };
-          } else {
-            rowData[col.name] = {
-              value: cell.value,
-              cellId: cell.id,
-            };
-          }
+
+      // Create a map of existing cells for quick lookup
+      const cellMap = new Map(row.cells.map((cell) => [cell.columnId, cell]));
+
+      // Ensure all columns have entries
+      tableMetadata.columns.forEach((col) => {
+        const existingCell = cellMap.get(col.id);
+
+        if (col.name === "#") {
+          rowData[col.name] = {
+            value: (globalIndex + 1).toString(),
+            cellId: existingCell?.id ?? "",
+          };
+        } else {
+          rowData[col.name] = {
+            value: existingCell?.value ?? "",
+            cellId: existingCell?.id ?? "",
+          };
         }
       });
 
@@ -233,26 +236,6 @@ const Table = ({
         cell: ({ row }: { row: Row<TableRow> }) => {
           const cellData: Cell = row.getValue(col.name);
           const column = tableMetadata.columns.find((c) => c.name === col.name);
-
-          // Handle case where cell doesn't exist yet (new column)
-          if (!cellData?.cellId) {
-            return (
-              <CellComponent
-                readOnly={isReadOnly}
-                colType={column?.type ?? ColumnType.TEXT}
-                cellData={{
-                  cellId: "",
-                  value: "",
-                }}
-                onUpdate={(newValue: string, cellId: string) =>
-                  handleUpdate(newValue, cellId)
-                }
-                searchValue={searchValue}
-                isMatch={false}
-                isCurrentMatch={false}
-              />
-            );
-          }
 
           // Find if this cell is a match
           const isMatch = matchingCells?.some(
