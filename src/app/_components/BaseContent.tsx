@@ -38,11 +38,14 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     { enabled: !!activeTab && !!searchValue && searchValue.trim() !== "" },
   );
 
-  console.log(cells);
-
   useEffect(() => {
     setMatchingCells(cells ?? []);
   }, [cells]);
+
+  useEffect(() => {
+    // Reset current match index when search changes or no matches
+    setCurrentMatchIndex(0);
+  }, [searchValue, matchingCells.length]);
 
   useEffect(() => {
     // Only set if activeTab hasn't been set yet
@@ -115,9 +118,6 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
             searchValue={searchValue}
             matchingCells={matchingCells}
             currentMatchIndex={currentMatchIndex}
-            onMatchInfoChange={(totalMatches, currentIndex) => {
-              setCurrentMatchIndex(currentIndex);
-            }}
           />
         </div>
       </div>

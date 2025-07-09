@@ -1,5 +1,5 @@
 import { Search, X, ChevronUp, ChevronDown } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "~/components/ui/input";
 import {
   Popover,
@@ -7,11 +7,9 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 import { Button } from "~/components/ui/button";
-import { api } from "~/trpc/react";
 import type { ISearchTableButtonProps } from "~/type";
 
 const SearchTableButton = ({
-  activeTab,
   searchValue,
   onUpdate,
   totalMatches = 0,
@@ -19,7 +17,6 @@ const SearchTableButton = ({
   onNextMatch,
   onPrevMatch,
 }: ISearchTableButtonProps) => {
-  console.log(totalMatches, currentMatchIndex);
   const [isOpen, setIsOpen] = useState(false);
   const [localSearchValue, setLocalSearchValue] = useState(searchValue ?? "");
 
@@ -54,19 +51,9 @@ const SearchTableButton = ({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger>
-        <div
-          className={`flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer ${
-            hasSearchValue ? "bg-purple-200/80" : "hover:bg-gray-200/80"
-          }`}
-        >
+        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
           <Search strokeWidth={1.5} size={16} />
-          <p className="text-xs">
-            {hasSearchValue
-              ? totalMatches > 0
-                ? `${currentMatchIndex + 1} of ${totalMatches}`
-                : "No matches"
-              : "Search"}
-          </p>
+          <p className="text-xs">Search</p>
         </div>
       </PopoverTrigger>
       <PopoverContent className="w-80 space-y-4">
@@ -93,7 +80,7 @@ const SearchTableButton = ({
           {hasSearchValue && totalMatches > 0 && (
             <div className="flex items-center justify-between">
               <p className="text-xs text-gray-500">
-                {totalMatches} match{totalMatches !== 1 ? "es" : ""} found
+                {currentMatchIndex + 1} of {totalMatches}
               </p>
               <div className="flex gap-1">
                 <Button

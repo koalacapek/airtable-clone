@@ -5,7 +5,6 @@ import {
   LayoutPanelTop,
   Menu,
   Palette,
-  Search,
   Share,
 } from "lucide-react";
 import type { IOptionsTabProps } from "~/type";
@@ -24,6 +23,9 @@ const OptionsTab = ({
   searchValue,
   onSearchChange,
   matchingCells,
+  currentMatchIndex,
+  onNextMatch,
+  onPrevMatch,
 }: IOptionsTabProps) => {
   const utils = api.useUtils();
   const { mutate: updateView } = api.view.update.useMutation({
@@ -142,17 +144,12 @@ const OptionsTab = ({
 
         {/* Search */}
         <SearchTableButton
-          activeTab={activeTab!}
           searchValue={searchValue}
           onUpdate={onSearchChange!}
           totalMatches={matchingCells?.length ?? 0}
-          currentMatchIndex={0}
-          onNextMatch={() => {
-            console.log("next match");
-          }}
-          onPrevMatch={() => {
-            console.log("prev match");
-          }}
+          currentMatchIndex={currentMatchIndex}
+          onNextMatch={onNextMatch}
+          onPrevMatch={onPrevMatch}
         />
       </div>
     </div>

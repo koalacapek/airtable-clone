@@ -27,6 +27,8 @@ const Cell = ({
     }
   };
 
+  const isCurrent = isMatch && isCurrentMatch;
+
   if (readOnly) {
     return (
       <span
@@ -45,8 +47,8 @@ const Cell = ({
       <input
         type={colType === ColumnType.NUMBER ? "number" : "text"}
         className={`focus:border-blue-1 w-full border-none outline-none ${
-          isMatch ? "bg-yellow-200" : ""
-        } ${isCurrentMatch ? "bg-orange-400" : ""}`}
+          isCurrent ? "bg-orange-400" : isMatch ? "bg-yellow-200" : ""
+        }`}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleBlur}

@@ -26,7 +26,6 @@ const Table = ({
   searchValue,
   matchingCells = [],
   currentMatchIndex = 0,
-  onMatchInfoChange,
 }: ITableProps) => {
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnType, setNewColumnType] = useState<"TEXT" | "NUMBER">("TEXT");
@@ -220,12 +219,6 @@ const Table = ({
         a.rowIdx !== b.rowIdx ? a.rowIdx - b.rowIdx : a.colIdx - b.colIdx,
       );
   }, [matchingCells, allRows, tableMetadata]);
-
-  useEffect(() => {
-    if (onMatchInfoChange) {
-      onMatchInfoChange(matchPositions.length, currentMatchIndex);
-    }
-  }, [currentMatchIndex, matchPositions.length, onMatchInfoChange]);
 
   const columns: ColumnDef<TableRow>[] = useMemo(() => {
     if (!tableMetadata) return [];

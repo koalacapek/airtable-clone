@@ -50,7 +50,6 @@ export interface ITableProps {
     columnId: string;
   }[];
   currentMatchIndex?: number;
-  onMatchInfoChange?: (totalMatches: number, currentIndex: number) => void;
 }
 
 export interface IOptionsTabProps {
@@ -117,7 +116,6 @@ export interface IHideFieldsButtonProps {
 }
 
 export interface ISearchTableButtonProps {
-  activeTab: string;
   searchValue?: string;
   onUpdate: (searchValue: string) => void;
   totalMatches?: number;
