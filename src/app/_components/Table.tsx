@@ -156,7 +156,7 @@ const Table = ({
     },
 
     onSettled: (_data, _err, _input) => {
-      void utils.table.getTableWithDataInfinite.invalidate({
+      void utils.cell.getAll.invalidate({
         tableId: _input.tableId,
       });
     },
