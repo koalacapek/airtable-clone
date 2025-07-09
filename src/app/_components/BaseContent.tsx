@@ -33,8 +33,16 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
 
   const { data: cells } = api.table.getMatchingCellIds.useQuery(
     activeTab && searchValue && searchValue.trim() !== ""
-      ? { tableId: activeTab, searchValue }
-      : { tableId: "", searchValue: "" },
+      ? {
+          tableId: activeTab,
+          searchValue,
+          hiddenColumns: viewConditions?.hiddenColumns ?? [],
+        }
+      : {
+          tableId: "",
+          searchValue: "",
+          hiddenColumns: [],
+        },
     { enabled: !!activeTab && !!searchValue && searchValue.trim() !== "" },
   );
 

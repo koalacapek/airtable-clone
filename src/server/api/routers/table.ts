@@ -408,14 +408,19 @@ export const tableRouter = createTRPCRouter({
       z.object({
         tableId: z.string(),
         searchValue: z.string(),
+        hiddenColumns: z.array(z.string()).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { tableId, searchValue } = input;
+      const { tableId, searchValue, hiddenColumns = [] } = input;
       if (!searchValue || searchValue.trim() === "") return [];
+
       const cells = await ctx.db.cell.findMany({
         where: {
           row: { tableId },
+          columnId: {
+            notIn: hiddenColumns,
+          },
           value: {
             contains: searchValue.trim(),
             mode: "insensitive",
