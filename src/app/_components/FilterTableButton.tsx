@@ -46,6 +46,28 @@ const FilterTableButton = ({
     }
   }, [columnsData]);
 
+  // Update filterInputs when filters prop changes (e.g., when switching views)
+  useEffect(() => {
+    if (filters && Object.keys(filters).length > 0) {
+      const newFilterInputs = Object.entries(filters).map(
+        ([columnName, config]) => {
+          const filterConfig = config as { op: string; value?: string };
+          return {
+            filterBy: columnName,
+            filterOperator: filterConfig.op,
+            filterValue: filterConfig.value ?? "",
+          };
+        },
+      );
+      setFilterInputs(newFilterInputs);
+    } else {
+      // Reset to empty state when no filters
+      setFilterInputs([
+        { filterBy: undefined, filterOperator: "", filterValue: "" },
+      ]);
+    }
+  }, [filters]);
+
   // Operator options
   const textOperators = [
     { value: "is_empty", label: "is empty" },

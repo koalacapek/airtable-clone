@@ -1,5 +1,5 @@
 import { EyeOff } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Popover,
   PopoverContent,
@@ -16,6 +16,11 @@ const HideFieldsButton = ({
 }: IHideFieldsButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hiddenColumns, setHiddenColumns] = useState<string[]>(hiddenFields);
+
+  // Update local state when hiddenFields prop changes (e.g., when switching views)
+  useEffect(() => {
+    setHiddenColumns(hiddenFields);
+  }, [hiddenFields]);
 
   const { data: columnsData } = api.table.getTableMetadata.useQuery(
     {
