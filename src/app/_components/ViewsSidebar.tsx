@@ -93,7 +93,10 @@ const ViewsSidebar = ({
 
   return (
     <div className="w-64 border p-4">
-      <div className="mb-4 flex items-center rounded-sm py-1 hover:cursor-pointer hover:bg-gray-200">
+      <div
+        onClick={() => setIsCreating(true)}
+        className="mb-4 flex items-center rounded-sm py-1 hover:cursor-pointer hover:bg-gray-200"
+      >
         <Button
           variant="ghost"
           size="sm"

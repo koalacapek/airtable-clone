@@ -192,6 +192,7 @@ const Table = ({
 
   const handleCreateColumn = useCallback(() => {
     if (!activeTab || !newColumnName.trim()) return;
+    console.log(newColumnName, newColumnType);
 
     createColumn({
       tableId: activeTab,
@@ -232,6 +233,27 @@ const Table = ({
         cell: ({ row }: { row: Row<TableRow> }) => {
           const cellData: Cell = row.getValue(col.name);
           const column = tableMetadata.columns.find((c) => c.name === col.name);
+
+          // Handle case where cell doesn't exist yet (new column)
+          if (!cellData?.cellId) {
+            return (
+              <CellComponent
+                readOnly={isReadOnly}
+                colType={column?.type ?? ColumnType.TEXT}
+                cellData={{
+                  cellId: "",
+                  value: "",
+                }}
+                onUpdate={(newValue: string, cellId: string) =>
+                  handleUpdate(newValue, cellId)
+                }
+                searchValue={searchValue}
+                isMatch={false}
+                isCurrentMatch={false}
+              />
+            );
+          }
+
           // Find if this cell is a match
           const isMatch = matchingCells?.some(
             (mc) => mc.id === cellData.cellId,

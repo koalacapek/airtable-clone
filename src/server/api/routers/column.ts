@@ -37,11 +37,6 @@ export const columnRouter = createTRPCRouter({
         })),
       });
 
-      const fullCol = await ctx.db.row.findUnique({
-        where: { id: newCol.id },
-        include: { cells: true },
-      });
-
-      return fullCol;
+      return newCol;
     }),
 });
