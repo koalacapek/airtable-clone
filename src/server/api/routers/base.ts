@@ -55,11 +55,11 @@ export const baseRouter = createTRPCRouter({
     }
 
     // Generate 5 rows with faker
-    const rowsToCreate = Array.from({ length: 200 }).map((_, i) => ({
+    const rowsToCreate = Array.from({ length: 200 }).map((_) => ({
       tableId: table.id,
       cells: {
         create: [
-          { columnId: rowNumberCol.id, value: (i + 1).toString() },
+          { columnId: rowNumberCol.id, value: "" },
           { columnId: nameCol.id, value: faker.person.fullName() },
           {
             columnId: ageCol.id,
@@ -78,8 +78,8 @@ export const baseRouter = createTRPCRouter({
       orderBy: { createdAt: "asc" },
     });
 
-    const cellsToCreate = createdRows.flatMap((row, index) => [
-      { rowId: row.id, columnId: rowNumberCol.id, value: index.toString() },
+    const cellsToCreate = createdRows.flatMap((row) => [
+      { rowId: row.id, columnId: rowNumberCol.id, value: "" },
       { rowId: row.id, columnId: nameCol.id, value: faker.person.fullName() },
       {
         rowId: row.id,

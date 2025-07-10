@@ -156,9 +156,16 @@ const Table = ({
     },
 
     onSettled: (_data, _err, _input) => {
-      void utils.cell.getAll.invalidate({
-        tableId: _input.tableId,
-      });
+      // Only if table has some kind of sort, it will refresh the table
+      if (viewConditions?.sort && Object.keys(viewConditions.sort).length > 0) {
+        void utils.table.getTableWithDataInfinite.invalidate({
+          tableId: _input.tableId,
+        });
+      } else {
+        void utils.cell.getAll.invalidate({
+          tableId: _input.tableId,
+        });
+      }
     },
   });
 

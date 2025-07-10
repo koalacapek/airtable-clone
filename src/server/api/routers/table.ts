@@ -105,7 +105,7 @@ export const tableRouter = createTRPCRouter({
         const cells = [
           {
             columnId: rowNumberCol.id,
-            value: (index + 1).toString(),
+            value: "",
             rowId: row!.id,
           },
           { columnId: nameCol.id, value: data.name, rowId: row!.id },
@@ -170,8 +170,6 @@ export const tableRouter = createTRPCRouter({
         tableId: z.string(),
         limit: z.number().default(1000),
         cursor: z.string().optional(),
-        sortBy: z.string().optional(),
-        sortOrder: z.enum(["asc", "desc"]).optional(),
         filters: z.record(z.any()).optional(),
         sort: z.record(z.any()).optional(),
         hiddenColumns: z.array(z.string()).optional(),
@@ -179,227 +177,141 @@ export const tableRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const { tableId, limit, cursor, filters, sort } = input;
-      // Build where conditions for filtering
-      let whereConditions: Prisma.RowWhereInput = { tableId };
 
-      // If filter conditions exist
+      // Get columns for this table
+      const columns = await ctx.db.column.findMany({
+        where: { tableId },
+        select: { id: true, name: true, type: true },
+      });
+
+      // Build SQL query with JOINs for efficient filtering and sorting
+      let sql = `
+        SELECT r.id, r."tableId", r."createdAt"
+        FROM "Row" r
+      `;
+
+      const params: (string | number)[] = [];
+      let paramIndex = 1;
+
+      // Add JOINs for filtering
       if (filters && Object.keys(filters).length > 0) {
-        const columns = await ctx.db.column.findMany({
-          where: { tableId },
+        const filterEntries = Object.entries(filters);
+        filterEntries.forEach(([columnName, filterConfig], index) => {
+          const column = columns.find((col) => col.name === columnName);
+          if (!column) return;
+
+          const alias = `c${index}`;
+          sql += ` LEFT JOIN "Cell" ${alias} ON r.id = ${alias}."rowId" AND ${alias}."columnId" = $${paramIndex++}`;
+          params.push(column.id);
         });
-
-        // For each filter, we need to check if the row has a cell with the matching value
-        const filterConditions: Prisma.RowWhereInput[] = Object.entries(filters)
-          .map(([columnName, filterConfig]) => {
-            const column = columns.find((col) => col.name === columnName);
-            if (!column) return null;
-            console.log("lol", columnName, filterConfig);
-
-            if (
-              filterConfig &&
-              typeof filterConfig === "object" &&
-              filterConfig !== null &&
-              "op" in filterConfig
-            ) {
-              const filterOp = (filterConfig as { op: string }).op;
-
-              if (filterOp === "is_empty") {
-                return {
-                  cells: {
-                    none: {
-                      columnId: column.id,
-                    },
-                  },
-                } as Prisma.RowWhereInput;
-              } else if (filterOp === "is_not_empty") {
-                return {
-                  cells: {
-                    some: {
-                      columnId: column.id,
-                    },
-                  },
-                } as Prisma.RowWhereInput;
-              } else if (filterOp === "contains") {
-                return {
-                  cells: {
-                    some: {
-                      columnId: column.id,
-                      value: {
-                        contains: (filterConfig as { value: string }).value,
-                        mode: "insensitive" as const,
-                      },
-                    },
-                  },
-                } as Prisma.RowWhereInput;
-              } else if (filterOp === "not_contains") {
-                return {
-                  AND: [
-                    {
-                      cells: {
-                        some: {
-                          columnId: column.id,
-                        },
-                      },
-                    },
-                    {
-                      cells: {
-                        none: {
-                          columnId: column.id,
-                          value: {
-                            contains: (filterConfig as { value: string }).value,
-                            mode: "insensitive" as const,
-                          },
-                        },
-                      },
-                    },
-                  ],
-                } as Prisma.RowWhereInput;
-              } else if (filterOp === "equal") {
-                return {
-                  cells: {
-                    some: {
-                      columnId: column.id,
-                      value: {
-                        equals: (filterConfig as { value: string }).value,
-                      },
-                    },
-                  },
-                } as Prisma.RowWhereInput;
-              } else if (filterOp === "greater") {
-                return {
-                  cells: {
-                    some: {
-                      columnId: column.id,
-                      value: {
-                        gt: (filterConfig as { value: string }).value,
-                      },
-                    },
-                  },
-                } as Prisma.RowWhereInput;
-              } else if (filterOp === "smaller") {
-                return {
-                  cells: {
-                    some: {
-                      columnId: column.id,
-                      value: {
-                        lt: (filterConfig as { value: string }).value,
-                      },
-                    },
-                  },
-                } as Prisma.RowWhereInput;
-              }
-            }
-            return null;
-          })
-          .filter(
-            (condition): condition is Prisma.RowWhereInput =>
-              condition !== null,
-          );
-
-        if (filterConditions.length > 0) {
-          whereConditions = {
-            ...whereConditions,
-            AND: filterConditions,
-          };
-        }
       }
 
-      // If sort conditions exist
+      // Add JOINs for sorting
       if (sort && Object.keys(sort).length > 0) {
         const sortEntries = Object.entries(sort);
-
-        if (sortEntries.length > 0) {
-          const firstSortEntry = sortEntries[0];
-          if (firstSortEntry) {
-            const [columnName, sortConfig] = firstSortEntry as [
-              string,
-              { direction: "asc" | "desc" },
-            ];
-            const sortDirection = sortConfig?.direction ?? "asc";
-
-            // Get the column for sorting
-            const columns = await ctx.db.column.findMany({
-              where: { tableId: tableId },
-            });
-            const column = columns.find((col) => col.name === columnName);
-
-            if (column) {
-              // For sorting by cell values, we need to use a different approach
-              // Since we can't directly sort by related table values in Prisma,
-              // we'll fetch all rows and sort them in memory, but with proper pagination
-              const allRows = await ctx.db.row.findMany({
-                where: whereConditions,
-                include: { cells: true },
-              });
-
-              // Sort by the specific column
-              allRows.sort((a, b) => {
-                const aCell = a.cells.find((c) => c.columnId === column.id);
-                const bCell = b.cells.find((c) => c.columnId === column.id);
-
-                const aValue = aCell?.value ?? "";
-                const bValue = bCell?.value ?? "";
-
-                if (sortDirection === "asc") {
-                  return aValue.localeCompare(bValue);
-                } else {
-                  return bValue.localeCompare(aValue);
-                }
-              });
-
-              // Apply pagination
-              let startIndex = 0;
-              if (cursor) {
-                // Find the cursor position in the sorted array
-                const cursorIndex = allRows.findIndex(
-                  (row) => row.id === cursor,
-                );
-                if (cursorIndex >= 0) {
-                  // Start AFTER the cursor position
-                  startIndex = cursorIndex + 1;
-                }
-              }
-
-              // Get the next batch of rows
-              const paginatedRows = allRows.slice(
-                startIndex,
-                startIndex + limit,
-              );
-
-              // Determine if there are more rows after this batch
-              const hasMore = startIndex + limit < allRows.length;
-              let nextCursor: string | undefined = undefined;
-
-              if (hasMore && paginatedRows.length > 0) {
-                // The cursor should be the ID of the last row in the current batch
-                nextCursor = paginatedRows[paginatedRows.length - 1]?.id;
-              }
-
-              return {
-                rows: paginatedRows,
-                nextCursor,
-              };
-            }
+        const firstSortEntry = sortEntries[0];
+        if (firstSortEntry) {
+          const [columnName, sortConfig] = firstSortEntry as [
+            string,
+            { direction: "asc" | "desc" },
+          ];
+          const column = columns.find((col) => col.name === columnName);
+          if (column) {
+            sql += ` LEFT JOIN "Cell" sort_cell ON r.id = sort_cell."rowId" AND sort_cell."columnId" = $${paramIndex++}`;
+            params.push(column.id);
           }
         }
       }
-      // If no sorting is applied, use regular pagination
-      const rows = await ctx.db.row.findMany({
-        where: whereConditions,
-        cursor: cursor ? { id: cursor } : undefined,
+
+      // WHERE clause
+      sql += ` WHERE r."tableId" = $${paramIndex++}`;
+      params.push(tableId);
+
+      // Add filter conditions
+      if (filters && Object.keys(filters).length > 0) {
+        const filterEntries = Object.entries(filters);
+        filterEntries.forEach(([columnName, filterConfig], index) => {
+          const column = columns.find((col) => col.name === columnName);
+          if (!column) return;
+
+          const alias = `c${index}`;
+          const filterOp = (filterConfig as { op: string }).op;
+          const filterValue = (filterConfig as { value?: string }).value;
+
+          if (filterOp === "is_empty") {
+            sql += ` AND ${alias}.id IS NULL`;
+          } else if (filterOp === "is_not_empty") {
+            sql += ` AND ${alias}.id IS NOT NULL`;
+          } else if (filterOp === "contains") {
+            sql += ` AND ${alias}.value ILIKE $${paramIndex++}`;
+            params.push(`%${filterValue}%`);
+          } else if (filterOp === "not_contains") {
+            sql += ` AND (${alias}.id IS NULL OR ${alias}.value NOT ILIKE $${paramIndex++})`;
+            params.push(`%${filterValue}%`);
+          } else if (filterOp === "equal") {
+            sql += ` AND ${alias}.value = $${paramIndex++}`;
+            params.push(filterValue ?? "");
+          } else if (filterOp === "greater") {
+            sql += ` AND ${alias}.value > $${paramIndex++}`;
+            params.push(filterValue ?? "");
+          } else if (filterOp === "smaller") {
+            sql += ` AND ${alias}.value < $${paramIndex++}`;
+            params.push(filterValue ?? "");
+          }
+        });
+      }
+
+      // Add cursor condition
+      if (cursor) {
+        sql += ` AND r.id > $${paramIndex++}`;
+        params.push(cursor);
+      }
+
+      // ORDER BY clause
+      if (sort && Object.keys(sort).length > 0) {
+        const sortEntries = Object.entries(sort);
+        const firstSortEntry = sortEntries[0];
+        if (firstSortEntry) {
+          const [columnName, sortConfig] = firstSortEntry as [
+            string,
+            { direction: "asc" | "desc" },
+          ];
+          const sortDirection = sortConfig?.direction ?? "asc";
+          sql += ` ORDER BY LOWER(sort_cell.value) ${sortDirection.toUpperCase()}, r.id`;
+        }
+      } else {
+        sql += ` ORDER BY r.id`;
+      }
+
+      // LIMIT clause
+      sql += ` LIMIT $${paramIndex++}`;
+      params.push(limit + 1);
+
+      // Execute the query
+      const result = await ctx.db.$queryRawUnsafe(sql, ...params);
+      const rows = result as { id: string; tableId: string; createdAt: Date }[];
+
+      // Get the actual row data with cells
+      const rowIds = rows.map((row) => row.id);
+      const rowsWithCells = await ctx.db.row.findMany({
+        where: { id: { in: rowIds } },
         include: { cells: true },
-        take: limit + 1,
       });
 
+      // Preserve the sort order from the SQL query
+      const sortedRowsWithCells = rowIds.map(
+        (id) => rowsWithCells.find((row) => row.id === id)!,
+      );
+
+      // Determine next cursor
       let nextCursor: string | undefined = undefined;
       if (rows.length > limit) {
         const nextItem = rows.pop();
         nextCursor = nextItem!.id;
-        // console.log("lol", nextCursor);
       }
 
       return {
-        rows,
+        rows: sortedRowsWithCells,
         nextCursor,
       };
     }),
