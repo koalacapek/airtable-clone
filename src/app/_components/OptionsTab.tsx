@@ -15,6 +15,7 @@ import FilterTableButton from "./FilterTableButton";
 import { useCallback } from "react";
 import HideFieldsButton from "./HideFieldsButton";
 import SearchTableButton from "./SearchTableButton";
+import Spinner from "./Spinner";
 
 const OptionsTab = ({
   activeTab,
@@ -41,6 +42,21 @@ const OptionsTab = ({
       }
     },
   });
+
+  // Create bulk rows mutation
+  const { mutate: createBulkRows, isPending: isCreatingBulkRows } =
+    api.row.createBulkRows.useMutation({
+      onSuccess: () => {
+        void utils.table.getTableWithDataInfinite.invalidate({
+          tableId: activeTab!,
+        });
+      },
+    });
+
+  const handleCreateBulkRows = useCallback(() => {
+    if (!activeTab) return;
+    createBulkRows({ tableId: activeTab, count: 100000 });
+  }, [activeTab, createBulkRows]);
 
   const handleUpdateFilter = useCallback(
     (filters: Record<string, unknown>) => {
@@ -90,10 +106,20 @@ const OptionsTab = ({
           <p className="text-xs">Hide fields</p>
         </div> */}
 
-        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
-          <Plus strokeWidth={1.5} size={16} />
-          <p className="text-xs">Add 100k row</p>
-        </div>
+        <button
+          onClick={handleCreateBulkRows}
+          disabled={isCreatingBulkRows}
+          className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isCreatingBulkRows ? (
+            <Spinner size={16} />
+          ) : (
+            <Plus strokeWidth={1.5} size={16} />
+          )}
+          <p className="text-xs">
+            {isCreatingBulkRows ? "Adding 100k rows..." : "Add 100k row"}
+          </p>
+        </button>
 
         <HideFieldsButton
           activeTab={activeTab!}

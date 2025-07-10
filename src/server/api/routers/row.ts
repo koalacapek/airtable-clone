@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { faker } from "@faker-js/faker";
 
 import {
   createTRPCRouter,
@@ -49,29 +50,77 @@ export const rowRouter = createTRPCRouter({
 
       return fullRow;
     }),
-  getInfiniteRows: protectedProcedure
+
+  createBulkRows: protectedProcedure
     .input(
       z.object({
         tableId: z.string(),
-        limit: z.number().min(1).max(100),
-        cursor: z.string().nullish(), // last row ID
+        count: z.number().min(1).max(100000).default(100000),
       }),
     )
-    .query(async ({ ctx, input }) => {
-      const rows = await ctx.db.row.findMany({
+    .mutation(async ({ ctx, input }) => {
+      // Fetch columns to create cells for each row
+      const columns = await ctx.db.column.findMany({
         where: { tableId: input.tableId },
-        take: input.limit + 1,
-        cursor: input.cursor ? { id: input.cursor } : undefined,
-        skip: input.cursor ? 1 : 0,
-        orderBy: { createdAt: "asc" },
-        include: { cells: true },
       });
 
-      let nextCursor: string | null = null;
-      if (rows.length > input.limit) {
-        nextCursor = rows.pop()!.id;
+      if (columns.length === 0) {
+        throw new Error("No columns found for table");
       }
 
-      return { rows, nextCursor };
+      // Get current row count to determine starting row numbers
+      const currentRowCount = await ctx.db.row.count({
+        where: { tableId: input.tableId },
+      });
+
+      // Create rows in batches to avoid memory issues
+
+      // Create rows for this batch
+      const rowsToCreate = Array.from({ length: input.count }, () => ({
+        tableId: input.tableId,
+      }));
+
+      // Create the rows
+      const createdRows = await ctx.db.row.createManyAndReturn({
+        data: rowsToCreate,
+      });
+
+      // Create cells for each row in this batch
+      const cellsToCreate: {
+        rowId: string;
+        columnId: string;
+        value: string;
+      }[] = [];
+
+      createdRows.forEach((row, rowIndex) => {
+        const globalRowIndex = currentRowCount + rowIndex;
+
+        columns.forEach((col) => {
+          let value = "";
+
+          if (col.name === "#") {
+            value = (globalRowIndex + 1).toString();
+          } else if (col.type === "TEXT") {
+            // Generate fake text data for text columns
+            value = faker.person.fullName();
+          } else if (col.type === "NUMBER") {
+            // Generate fake number data for number columns
+            value = faker.number.int({ min: 1, max: 1000 }).toString();
+          }
+
+          cellsToCreate.push({
+            rowId: row.id,
+            columnId: col.id,
+            value,
+          });
+        });
+      });
+
+      // Create all cells for this batch
+      await ctx.db.cell.createMany({
+        data: cellsToCreate,
+      });
+
+      return { success: true, rowsCreated: input.count };
     }),
 });

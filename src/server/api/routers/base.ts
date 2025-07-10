@@ -139,7 +139,6 @@ export const baseRouter = createTRPCRouter({
       const base = await ctx.db.base.delete({
         where: { id: input.id, userId: ctx.session.user.id },
       });
-
       return base;
     }),
 

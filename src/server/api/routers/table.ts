@@ -85,7 +85,7 @@ export const tableRouter = createTRPCRouter({
       }
 
       // Create rows and cells
-      const rowData = Array.from({ length: 137 }).map(() => ({
+      const rowData = Array.from({ length: 200 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
@@ -168,7 +168,7 @@ export const tableRouter = createTRPCRouter({
     .input(
       z.object({
         tableId: z.string(),
-        limit: z.number().max(100).default(50),
+        limit: z.number().default(1000),
         cursor: z.string().optional(),
         sortBy: z.string().optional(),
         sortOrder: z.enum(["asc", "desc"]).optional(),
