@@ -13,6 +13,8 @@ import {
   SelectItem,
   SelectTrigger,
 } from "~/components/ui/select";
+import type { IAddColumnPopoverProps } from "~/type";
+import Spinner from "./Spinner";
 
 const AddColumnPopover = ({
   newColumnName,
@@ -20,13 +22,8 @@ const AddColumnPopover = ({
   setNewColumnName,
   setNewColumnType,
   onSubmit,
-}: {
-  newColumnName: string;
-  newColumnType: "TEXT" | "NUMBER";
-  setNewColumnName: (s: string) => void;
-  setNewColumnType: (s: "TEXT" | "NUMBER") => void;
-  onSubmit: () => void;
-}) => {
+  isCreating,
+}: IAddColumnPopoverProps) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -34,9 +31,17 @@ const AddColumnPopover = ({
       <PopoverTrigger asChild>
         <button
           onClick={() => setOpen(true)}
-          className="w-full p-2 text-left text-sm hover:cursor-pointer hover:bg-gray-100"
+          disabled={isCreating}
+          className="w-full p-2 text-left text-sm hover:cursor-pointer hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <Plus strokeWidth={1.5} size={16} />
+          {isCreating ? (
+            <div className="flex items-center gap-2">
+              <Spinner size={16} />
+              <span>Adding column...</span>
+            </div>
+          ) : (
+            <Plus strokeWidth={1.5} size={16} />
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-64 space-y-2">
@@ -73,9 +78,17 @@ const AddColumnPopover = ({
             onSubmit();
             setOpen(false);
           }}
-          className="w-full rounded bg-blue-600 py-1 text-sm text-white hover:bg-blue-700"
+          disabled={(isCreating ?? false) || !newColumnName.trim()}
+          className="w-full rounded bg-blue-600 py-1 text-sm text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Add Column
+          {isCreating ? (
+            <div className="flex items-center justify-center gap-2">
+              <Spinner size={14} />
+              <span>Adding...</span>
+            </div>
+          ) : (
+            "Add Column"
+          )}
         </button>
       </PopoverContent>
     </Popover>

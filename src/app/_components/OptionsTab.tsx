@@ -5,6 +5,7 @@ import {
   LayoutPanelTop,
   Menu,
   Palette,
+  Plus,
   Share,
 } from "lucide-react";
 import type { IOptionsTabProps } from "~/type";
@@ -88,6 +89,12 @@ const OptionsTab = ({
           <EyeOff strokeWidth={1.5} size={16} />
           <p className="text-xs">Hide fields</p>
         </div> */}
+
+        <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
+          <Plus strokeWidth={1.5} size={16} />
+          <p className="text-xs">Add 100k row</p>
+        </div>
+
         <HideFieldsButton
           activeTab={activeTab!}
           hiddenFields={viewConditions?.hiddenColumns ?? []}

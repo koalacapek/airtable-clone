@@ -163,23 +163,25 @@ const Table = ({
   });
 
   // Create new row
-  const { mutate: createRow } = api.row.createRow.useMutation({
-    onSuccess: () => {
-      void utils.table.getTableWithDataInfinite.invalidate({
-        tableId: activeTab!,
-      });
-    },
-  });
+  const { mutate: createRow, isPending: isCreatingRow } =
+    api.row.createRow.useMutation({
+      onSuccess: () => {
+        void utils.table.getTableWithDataInfinite.invalidate({
+          tableId: activeTab!,
+        });
+      },
+    });
 
   // Create new column
-  const { mutate: createColumn } = api.column.createColumn.useMutation({
-    onSuccess: () => {
-      void utils.table.getTableMetadata.invalidate({ tableId: activeTab! });
-      void utils.table.getTableWithDataInfinite.invalidate({
-        tableId: activeTab!,
-      });
-    },
-  });
+  const { mutate: createColumn, isPending: isCreatingColumn } =
+    api.column.createColumn.useMutation({
+      onSuccess: () => {
+        void utils.table.getTableMetadata.invalidate({ tableId: activeTab! });
+        void utils.table.getTableWithDataInfinite.invalidate({
+          tableId: activeTab!,
+        });
+      },
+    });
 
   const handleUpdate = useCallback(
     (newValue: string, cellId: string) => {
@@ -325,6 +327,7 @@ const Table = ({
                   newColumnType={newColumnType}
                   setNewColumnType={setNewColumnType}
                   onSubmit={handleCreateColumn}
+                  isCreating={isCreatingColumn}
                 />
               </th>
             </tr>
@@ -372,9 +375,17 @@ const Table = ({
             <td colSpan={columns.length + 1} className="border">
               <button
                 onClick={handleAddRow}
-                className="w-full p-2 text-left text-sm hover:cursor-pointer hover:bg-gray-100"
+                disabled={isCreatingRow}
+                className="w-full p-2 text-left text-sm hover:cursor-pointer hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Plus strokeWidth={1.5} size={16} />
+                {isCreatingRow ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner size={16} />
+                    <span>Adding row...</span>
+                  </div>
+                ) : (
+                  <Plus strokeWidth={1.5} size={16} />
+                )}
               </button>
             </td>
           </tr>

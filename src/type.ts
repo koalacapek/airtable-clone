@@ -123,3 +123,12 @@ export interface ISearchTableButtonProps {
   onNextMatch?: () => void;
   onPrevMatch?: () => void;
 }
+
+export interface IAddColumnPopoverProps {
+  newColumnName: string;
+  newColumnType: "TEXT" | "NUMBER";
+  setNewColumnName: (s: string) => void;
+  setNewColumnType: (s: "TEXT" | "NUMBER") => void;
+  onSubmit: () => void;
+  isCreating?: boolean;
+}
