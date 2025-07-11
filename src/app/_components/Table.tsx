@@ -310,109 +310,114 @@ const Table = ({
       : 0;
 
   return (
-    <div
-      ref={scrollRef}
-      className="h-full overflow-y-auto"
-      onScroll={(e) => handleScroll(e.currentTarget)}
-    >
-      <table className="w-full border border-gray-200 text-sm">
-        <thead className="sticky -top-0.5 z-10 bg-white">
-          {tableInstance.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id} className="bg-gray-100">
-              {headerGroup.headers.map((header) => (
-                <th key={header.id} className="border-b p-2 text-left">
-                  {flexRender(
-                    header.column.columnDef.header,
-                    header.getContext(),
-                  )}
+    <div className="flex h-full flex-col">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto"
+        onScroll={(e) => handleScroll(e.currentTarget)}
+      >
+        <table className="w-full border border-gray-200 text-sm">
+          <thead className="sticky -top-0.5 z-10 bg-white">
+            {tableInstance.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id} className="bg-gray-100">
+                {headerGroup.headers.map((header) => (
+                  <th key={header.id} className="border-b p-2 text-left">
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )}
+                  </th>
+                ))}
+                <th className="border-b p-2 text-left">
+                  <AddColumnPopover
+                    newColumnName={newColumnName}
+                    setNewColumnName={setNewColumnName}
+                    newColumnType={newColumnType}
+                    setNewColumnType={setNewColumnType}
+                    onSubmit={handleCreateColumn}
+                    isCreating={isCreatingColumn}
+                  />
                 </th>
-              ))}
-              <th className="border-b p-2 text-left">
-                <AddColumnPopover
-                  newColumnName={newColumnName}
-                  setNewColumnName={setNewColumnName}
-                  newColumnType={newColumnType}
-                  setNewColumnType={setNewColumnType}
-                  onSubmit={handleCreateColumn}
-                  isCreating={isCreatingColumn}
-                />
-              </th>
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {paddingTop > 0 && (
-            <tr>
-              <td style={{ height: `${paddingTop}px` }} />
-            </tr>
-          )}
-          {virtualRows.map((virtualRow) => {
-            const row = tableInstance.getRowModel().rows[virtualRow.index];
-            if (!row) return null;
-
-            return (
-              <tr key={row.id} data-index={virtualRow.index}>
-                {row.getVisibleCells().map((cell) => {
-                  const isRowNumberColumn = cell.column.id === "#";
-
-                  return (
-                    <td
-                      key={cell.id}
-                      className={`w-fit border p-2 focus-within:border-2 focus-within:border-blue-500 ${
-                        isRowNumberColumn ? "" : "hover:bg-gray-100"
-                      }`}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </td>
-                  );
-                })}
-                <td className="border p-2" />
               </tr>
-            );
-          })}
-          {paddingBottom > 0 && (
-            <tr>
-              <td style={{ height: `${paddingBottom}px` }} />
-            </tr>
-          )}
-          <tr>
-            <td colSpan={columns.length + 1} className="border">
-              <button
-                onClick={handleAddRow}
-                disabled={isCreatingRow}
-                className="w-full p-2 text-left text-sm hover:cursor-pointer hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isCreatingRow ? (
-                  <div className="flex items-center gap-2">
+            ))}
+          </thead>
+          <tbody>
+            {paddingTop > 0 && (
+              <tr>
+                <td style={{ height: `${paddingTop}px` }} />
+              </tr>
+            )}
+            {virtualRows.map((virtualRow) => {
+              const row = tableInstance.getRowModel().rows[virtualRow.index];
+              if (!row) return null;
+
+              return (
+                <tr key={row.id} data-index={virtualRow.index}>
+                  {row.getVisibleCells().map((cell) => {
+                    const isRowNumberColumn = cell.column.id === "#";
+
+                    return (
+                      <td
+                        key={cell.id}
+                        className={`w-fit border p-2 focus-within:border-2 focus-within:border-blue-500 ${
+                          isRowNumberColumn ? "" : "hover:bg-gray-100"
+                        }`}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="border p-2" />
+                </tr>
+              );
+            })}
+            {paddingBottom > 0 && (
+              <tr>
+                <td style={{ height: `${paddingBottom}px` }} />
+              </tr>
+            )}
+            {isFetchingNextPage && (
+              <tr>
+                <td
+                  colSpan={columns.length + 1}
+                  className="border bg-gray-50 p-4 text-center"
+                >
+                  <div className="flex items-center justify-center gap-2">
                     <Spinner size={16} />
-                    <span>Adding row...</span>
+                    <span className="text-sm text-gray-600">
+                      Loading more rows...
+                    </span>
                   </div>
-                ) : (
-                  <Plus strokeWidth={1.5} size={16} />
-                )}
-              </button>
-            </td>
-          </tr>
-          {isFetchingNextPage && (
-            <tr>
-              <td
-                colSpan={columns.length + 1}
-                className="border bg-gray-50 p-4 text-center"
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <Spinner size={16} />
-                  <span className="text-sm text-gray-600">
-                    Loading more rows...
-                  </span>
-                </div>
-              </td>
-            </tr>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Sticky Add Row Button */}
+      <div className="border-t border-gray-200 bg-white">
+        <button
+          onClick={handleAddRow}
+          disabled={isCreatingRow}
+          className="w-full p-3 text-left text-sm hover:cursor-pointer hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isCreatingRow ? (
+            <div className="flex items-center gap-2">
+              <Spinner size={16} />
+              <span>Adding row...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Plus strokeWidth={1.5} size={16} />
+              <span>Add row</span>
+            </div>
           )}
-        </tbody>
-      </table>
+        </button>
+      </div>
     </div>
   );
 };
