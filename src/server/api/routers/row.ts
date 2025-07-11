@@ -50,7 +50,7 @@ export const rowRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Fetch columns to create cells for each row
+      // Fetch columns to create cells for each rows
       const columns = await ctx.db.column.findMany({
         where: { tableId: input.tableId },
         select: { id: true, name: true, type: true },
