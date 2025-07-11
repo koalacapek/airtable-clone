@@ -23,8 +23,6 @@ const SearchTableButton = ({
   // Update search value when debounced value changes
   useEffect(() => {
     onUpdate(localSearchValue.trim());
-    // Reset match index when search changes
-    // setCurrentMatchIndex(0); // This line is removed as per the edit hint
   }, [localSearchValue, onUpdate]);
 
   // Sync with external search value
@@ -34,7 +32,6 @@ const SearchTableButton = ({
 
   const handleClearSearch = () => {
     setLocalSearchValue("");
-    // setCurrentMatchIndex(0); // This line is removed as per the edit hint
     setIsOpen(false);
   };
 

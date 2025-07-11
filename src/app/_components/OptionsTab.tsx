@@ -132,7 +132,7 @@ const OptionsTab = ({
             <Plus strokeWidth={1.5} size={16} />
           )}
           <p className="text-xs">
-            {isCreatingBulkRows ? "Adding 10k rows..." : "Add 10k row"}
+            {isCreatingBulkRows ? "Adding rows..." : "Add 10k rows"}
           </p>
         </button>
 
@@ -147,7 +147,7 @@ const OptionsTab = ({
             <Plus strokeWidth={1.5} size={16} />
           )}
           <p className="text-xs">
-            {isCreatingBulkRows ? "Adding 100k rows..." : "Add 100k row"}
+            {isCreatingBulkRows ? "Adding rows..." : "Add 100k row"}
           </p>
         </button>
 
