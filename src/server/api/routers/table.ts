@@ -210,6 +210,7 @@ export const tableRouter = createTRPCRouter({
 
       // Sort JOIN
       let sortColumnId: string | undefined;
+      let sortColumnType: string | undefined;
       if (sort && Object.keys(sort).length > 0) {
         const [columnName, sortConfig] = Object.entries(sort)[0] as [
           string,
@@ -218,6 +219,7 @@ export const tableRouter = createTRPCRouter({
         const column = columns.find((col) => col.name === columnName);
         if (column) {
           sortColumnId = column.id;
+          sortColumnType = column.type;
           sql += ` LEFT JOIN "Cell" sort_cell ON r.id = sort_cell."rowId" AND sort_cell."columnId" = $${paramIndex++}`;
           params.push(column.id);
           // Add sortValue to SELECT after the join is added
@@ -266,8 +268,18 @@ export const tableRouter = createTRPCRouter({
 
       // Cursor-based pagination
       if (cursor && sortColumnId) {
-        sql += ` AND (COALESCE(LOWER(sort_cell.value), ''), r.id) > ($${paramIndex++}, $${paramIndex++})`;
-        params.push(cursor.value ?? "", cursor.id);
+        if (sortColumnType === "NUMBER") {
+          // For number columns, compare as numbers
+          const cursorValue = cursor.value ? parseFloat(cursor.value) : 0;
+          const cursorIsNull = cursor.value === null || cursor.value === "";
+          sql += ` AND (CASE WHEN sort_cell.value IS NULL OR sort_cell.value = '' THEN 1 ELSE 0 END, COALESCE(CAST(sort_cell.value AS DECIMAL), 0), r.id) > ($${paramIndex++}, $${paramIndex++}, $${paramIndex++})`;
+          params.push(cursorIsNull ? 1 : 0, cursorValue, cursor.id);
+        } else {
+          // For text columns, compare as strings
+          const cursorIsNull = cursor.value === null || cursor.value === "";
+          sql += ` AND (CASE WHEN sort_cell.value IS NULL OR sort_cell.value = '' THEN 1 ELSE 0 END, COALESCE(LOWER(sort_cell.value), ''), r.id) > ($${paramIndex++}, $${paramIndex++}, $${paramIndex++})`;
+          params.push(cursorIsNull ? 1 : 0, cursor.value ?? "", cursor.id);
+        }
       } else if (cursor) {
         sql += ` AND r.id > $${paramIndex++}`;
         params.push(cursor.id);
@@ -278,7 +290,16 @@ export const tableRouter = createTRPCRouter({
         const sortDirection =
           (Object.values(sort!)[0] as { direction: "asc" | "desc" })
             ?.direction ?? "asc";
-        sql += ` ORDER BY LOWER(sort_cell.value) ${sortDirection.toUpperCase()}, r.id`;
+
+        if (sortColumnType === "NUMBER") {
+          // For number columns, cast to decimal for proper numeric sorting
+          // Handle NULL values by placing them at the end
+          sql += ` ORDER BY CASE WHEN sort_cell.value IS NULL OR sort_cell.value = '' THEN 1 ELSE 0 END, CAST(sort_cell.value AS DECIMAL) ${sortDirection.toUpperCase()}, r.id`;
+        } else {
+          // For text columns, use case-insensitive sorting
+          // Handle NULL values by placing them at the end
+          sql += ` ORDER BY CASE WHEN sort_cell.value IS NULL OR sort_cell.value = '' THEN 1 ELSE 0 END, LOWER(sort_cell.value) ${sortDirection.toUpperCase()}, r.id`;
+        }
       } else {
         sql += ` ORDER BY r.id`;
       }
