@@ -316,19 +316,22 @@ const Table = ({
         className="flex-1 overflow-y-auto"
         onScroll={(e) => handleScroll(e.currentTarget)}
       >
-        <table className="w-full border border-gray-200 text-sm">
+        <table className="table-auto border border-gray-200 text-sm">
           <thead className="sticky -top-0.5 z-10 bg-white">
             {tableInstance.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="bg-gray-100">
+              <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="border-b p-2 text-left">
+                  <th
+                    key={header.id}
+                    className="border p-2 text-left whitespace-nowrap"
+                  >
                     {flexRender(
                       header.column.columnDef.header,
                       header.getContext(),
                     )}
                   </th>
                 ))}
-                <th className="border-b p-2 text-left">
+                <th className="w-12 border-b p-2 text-left">
                   <AddColumnPopover
                     newColumnName={newColumnName}
                     setNewColumnName={setNewColumnName}
@@ -359,9 +362,9 @@ const Table = ({
                     return (
                       <td
                         key={cell.id}
-                        className={`w-fit border p-2 focus-within:border-2 focus-within:border-blue-500 ${
-                          isRowNumberColumn ? "" : "hover:bg-gray-100"
-                        }`}
+                        className={`border p-2 whitespace-nowrap focus-within:border-2 focus-within:border-blue-500 ${
+                          isRowNumberColumn ? "w-16" : "min-w-0 px-7"
+                        } ${isRowNumberColumn ? "" : "hover:bg-gray-100"}`}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
@@ -370,7 +373,7 @@ const Table = ({
                       </td>
                     );
                   })}
-                  <td className="border p-2" />
+                  <td className="w-12 border p-2" />
                 </tr>
               );
             })}

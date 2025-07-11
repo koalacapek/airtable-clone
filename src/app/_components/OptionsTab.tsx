@@ -16,6 +16,7 @@ import { useCallback } from "react";
 import HideFieldsButton from "./HideFieldsButton";
 import SearchTableButton from "./SearchTableButton";
 import Spinner from "./Spinner";
+import { Button } from "~/components/ui/button";
 
 const OptionsTab = ({
   activeTab,
@@ -28,6 +29,8 @@ const OptionsTab = ({
   currentMatchIndex,
   onNextMatch,
   onPrevMatch,
+  openView,
+  setOpenView,
 }: IOptionsTabProps) => {
   const utils = api.useUtils();
   const { mutate: updateView } = api.view.update.useMutation({
@@ -41,6 +44,10 @@ const OptionsTab = ({
         await utils.view.getAllByBase.invalidate({ baseId });
       }
     },
+  });
+
+  const { data: viewDetails } = api.view.getDetails.useQuery({
+    id: activeView!,
   });
 
   // Create bulk rows mutation
@@ -86,14 +93,19 @@ const OptionsTab = ({
   return (
     <div className="flex w-full justify-between p-2 pe-4 pl-5">
       {/* Grid */}
-      <div className="flex items-center gap-x-6">
-        <div>
+      <div className="flex items-center gap-x-4">
+        <div
+          className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80"
+          onClick={() => setOpenView?.(!openView)}
+        >
           <Menu strokeWidth={1.5} size={16} />
         </div>
 
         <div className="flex items-center justify-center gap-x-1.5 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
-          <LayoutPanelTop strokeWidth={1.5} size={16} />
-          <p className="text-xs font-semibold text-black">Grid View</p>
+          <LayoutPanelTop size={16} color="blue" />
+          <p className="text-xs font-semibold text-black">
+            {viewDetails?.name}
+          </p>
           <ChevronDown strokeWidth={1.5} size={16} />
         </div>
       </div>

@@ -32,7 +32,7 @@ const AddColumnPopover = ({
         <button
           onClick={() => setOpen(true)}
           disabled={isCreating}
-          className="w-full p-2 text-left text-sm hover:cursor-pointer hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full p-2 text-left text-sm hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isCreating ? (
             <div className="flex items-center gap-2">

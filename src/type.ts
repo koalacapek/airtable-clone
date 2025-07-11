@@ -71,6 +71,8 @@ export interface IOptionsTabProps {
   currentMatchIndex?: number;
   onNextMatch?: () => void;
   onPrevMatch?: () => void;
+  openView?: boolean;
+  setOpenView?: (open: boolean) => void;
 }
 
 export interface IView {
@@ -95,6 +97,7 @@ export interface IViewsSidebarProps {
       hiddenColumns: string[];
     } | null,
   ) => void;
+  openView?: boolean;
 }
 
 export interface ISortTableButtonProps {

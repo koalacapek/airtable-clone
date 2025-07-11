@@ -25,6 +25,7 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     }[]
   >([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [openView, setOpenView] = useState(true);
 
   // Fetch tables
   const { data: tables } = api.table.getAllByBase.useQuery({
@@ -111,6 +112,8 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
         currentMatchIndex={currentMatchIndex}
         onNextMatch={handleNextMatch}
         onPrevMatch={handlePrevMatch}
+        openView={openView}
+        setOpenView={setOpenView}
       />
       <div className="flex flex-1 overflow-hidden">
         <ViewsSidebar
@@ -118,6 +121,7 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
           activeView={activeView}
           setActiveView={setActiveView}
           onViewChange={handleViewChange}
+          openView={openView}
         />
         <div className="flex-1 overflow-auto">
           <Table

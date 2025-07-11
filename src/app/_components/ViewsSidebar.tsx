@@ -19,6 +19,7 @@ const ViewsSidebar = ({
   setActiveView,
   onViewChange,
   baseId,
+  openView = true,
 }: IViewsSidebarProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newViewName, setNewViewName] = useState("");
@@ -92,7 +93,13 @@ const ViewsSidebar = ({
   };
 
   return (
-    <div className="w-64 border p-4 pt-2">
+    <div
+      className={`transition-all duration-300 ease-in-out ${
+        openView
+          ? "w-64 translate-x-0 border p-4 pt-2 opacity-100"
+          : "pointer-events-none w-0 -translate-x-full opacity-0"
+      }`}
+    >
       <div
         onClick={() => setIsCreating(true)}
         className="mb-4 flex items-center rounded-sm py-1 hover:cursor-pointer hover:bg-gray-200"

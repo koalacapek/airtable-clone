@@ -210,4 +210,13 @@ export const viewRouter = createTRPCRouter({
 
       return { success: true };
     }),
+  getDetails: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const view = await ctx.db.view.findFirst({
+        where: { id: input.id },
+      });
+
+      return view;
+    }),
 });
