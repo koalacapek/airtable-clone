@@ -92,7 +92,7 @@ const ViewsSidebar = ({
   };
 
   return (
-    <div className="w-64 border p-4">
+    <div className="w-64 border p-4 pt-2">
       <div
         onClick={() => setIsCreating(true)}
         className="mb-4 flex items-center rounded-sm py-1 hover:cursor-pointer hover:bg-gray-200"
@@ -105,7 +105,7 @@ const ViewsSidebar = ({
         >
           <Plus size={14} strokeWidth={1.5} />
         </Button>
-        <h3 className="text-xs font-medium text-gray-900">Create new...</h3>
+        <h3 className="text-xs text-gray-900">Create new...</h3>
       </div>
 
       {isCreating && (
@@ -159,14 +159,16 @@ const ViewsSidebar = ({
             <div
               key={view.id}
               className={`group flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-gray-200 ${
-                activeView === view.id ? "bg-gray-200" : "text-gray-700"
+                activeView === view.id
+                  ? "bg-gray-200 font-semibold"
+                  : "text-gray-700"
               }`}
             >
               <button
                 onClick={() => setActiveView(view.id)}
                 className="flex flex-1 items-center gap-2 truncate group-hover:cursor-pointer"
               >
-                <Grid size={14} strokeWidth={1.5} />
+                <Grid size={14} strokeWidth={1.5} color="blue" />
                 <span className="truncate text-xs">{view.name}</span>
               </button>
 

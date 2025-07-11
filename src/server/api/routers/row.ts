@@ -53,69 +53,76 @@ export const rowRouter = createTRPCRouter({
       // Fetch columns to create cells for each row
       const columns = await ctx.db.column.findMany({
         where: { tableId: input.tableId },
+        select: { id: true, name: true, type: true },
       });
 
       if (columns.length === 0) {
         throw new Error("No columns found for table");
       }
 
-      // Get current row count to determine starting row numbers
+      // Get current row count once
       const currentRowCount = await ctx.db.row.count({
         where: { tableId: input.tableId },
       });
 
-      const BATCH_SIZE = 1000;
+      // Much smaller batch size to avoid transaction timeouts
+      const BATCH_SIZE = Math.min(
+        50,
+        Math.max(10, Math.floor(500 / columns.length)),
+      );
+
       let totalCreated = 0;
 
-      // Process in batches to avoid memory issues and improve performance
+      // Process in very small batches to avoid transaction timeouts
       for (let i = 0; i < input.count; i += BATCH_SIZE) {
         const batchSize = Math.min(BATCH_SIZE, input.count - i);
+        const batchStartIndex = currentRowCount + totalCreated;
 
-        // Create rows for this batch
-        const rowsToCreate = Array.from({ length: batchSize }, () => ({
-          tableId: input.tableId,
-        }));
+        // Use a separate transaction for each batch with shorter timeout
+        await ctx.db.$transaction(
+          async (tx) => {
+            // Create rows for this batch
+            const rowsToCreate = Array.from({ length: batchSize }, () => ({
+              tableId: input.tableId,
+            }));
 
-        // Create the rows
-        const createdRows = await ctx.db.row.createManyAndReturn({
-          data: rowsToCreate,
-        });
-
-        // Create cells for each row in this batch
-        const cellsToCreate: {
-          rowId: string;
-          columnId: string;
-          value: string;
-        }[] = [];
-
-        createdRows.forEach((row, rowIndex) => {
-          const globalRowIndex = currentRowCount + totalCreated + rowIndex;
-
-          columns.forEach((col) => {
-            let value = "";
-
-            if (col.name === "#") {
-              value = (globalRowIndex + 1).toString();
-            } else if (col.type === "TEXT") {
-              // Generate fake text data for text columns
-              value = faker.person.fullName();
-            } else if (col.type === "NUMBER") {
-              // Generate fake number data for number columns
-              value = faker.number.int({ min: 1, max: 1000 }).toString();
-            }
-
-            cellsToCreate.push({
-              rowId: row.id,
-              columnId: col.id,
-              value,
+            const rows = await tx.row.createManyAndReturn({
+              data: rowsToCreate,
             });
-          });
-        });
 
-        // Create all cells for this batch
-        await ctx.db.cell.createMany({
-          data: cellsToCreate,
-        });
+            // Generate cells for this batch
+            const cellsToCreate = rows.flatMap((row, rowIndex) => {
+              const globalRowIndex = batchStartIndex + rowIndex;
+
+              return columns.map((col) => {
+                let value = "";
+
+                if (col.name === "#") {
+                  value = (globalRowIndex + 1).toString();
+                } else if (col.type === "TEXT") {
+                  // Generate fake data on-demand to reduce memory usage
+                  value = faker.person.fullName();
+                } else if (col.type === "NUMBER") {
+                  value = faker.number.int({ min: 1, max: 1000 }).toString();
+                }
+
+                return {
+                  rowId: row.id,
+                  columnId: col.id,
+                  value,
+                };
+              });
+            });
+
+            // Create all cells for this batch
+            await tx.cell.createMany({
+              data: cellsToCreate,
+            });
+          },
+          {
+            timeout: 3000, // 3 second timeout per batch
+          },
+        );
 
         totalCreated += batchSize;
       }
