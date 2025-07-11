@@ -316,21 +316,26 @@ const Table = ({
         className="flex-1 overflow-y-auto"
         onScroll={(e) => handleScroll(e.currentTarget)}
       >
-        <table className="table-auto border border-gray-200 text-sm">
+        <table className="w-full table-fixed border border-gray-200 text-sm">
           <thead className="sticky -top-0.5 z-10 bg-white">
             {tableInstance.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className="border p-2 text-left whitespace-nowrap"
-                  >
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-                  </th>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const isRowNumberColumn = header.column.id === "#";
+                  return (
+                    <th
+                      key={header.id}
+                      className={`overflow-hidden border p-2 text-left ${
+                        isRowNumberColumn ? "w-16" : "w-32"
+                      }`}
+                    >
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                    </th>
+                  );
+                })}
                 <th className="w-12 border-b p-2 text-left">
                   <AddColumnPopover
                     newColumnName={newColumnName}
@@ -362,8 +367,8 @@ const Table = ({
                     return (
                       <td
                         key={cell.id}
-                        className={`border p-2 whitespace-nowrap focus-within:border-2 focus-within:border-blue-500 ${
-                          isRowNumberColumn ? "w-16" : "min-w-0 px-7"
+                        className={`overflow-hidden border p-2 focus-within:border-2 focus-within:border-blue-500 ${
+                          isRowNumberColumn ? "w-12" : "w-32"
                         } ${isRowNumberColumn ? "" : "hover:bg-gray-100"}`}
                       >
                         {flexRender(

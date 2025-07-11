@@ -27,7 +27,7 @@ const Navbar = () => {
         <div className="flex flex-2 items-center gap-x-5">
           <Menu
             size={20}
-            className="text-gray-2 ursor-pointer opacity-50 hover:text-black hover:opacity-70"
+            className="text-gray-2 opacity-50 hover:cursor-pointer hover:text-black hover:opacity-70"
           />
 
           <Image src="/logo.png" alt="Airtable logo" width={102} height={60} />

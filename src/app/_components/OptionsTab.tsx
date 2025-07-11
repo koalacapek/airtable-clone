@@ -16,7 +16,6 @@ import { useCallback } from "react";
 import HideFieldsButton from "./HideFieldsButton";
 import SearchTableButton from "./SearchTableButton";
 import Spinner from "./Spinner";
-import { Button } from "~/components/ui/button";
 
 const OptionsTab = ({
   activeTab,
@@ -60,9 +59,14 @@ const OptionsTab = ({
       },
     });
 
-  const handleCreateBulkRows = useCallback(() => {
+  const handleCreate100kRows = useCallback(() => {
     if (!activeTab) return;
     createBulkRows({ tableId: activeTab, count: 100000 });
+  }, [activeTab, createBulkRows]);
+
+  const handleCreate10kRows = useCallback(() => {
+    if (!activeTab) return;
+    createBulkRows({ tableId: activeTab, count: 10000 });
   }, [activeTab, createBulkRows]);
 
   const handleUpdateFilter = useCallback(
@@ -102,9 +106,9 @@ const OptionsTab = ({
         </div>
 
         <div className="flex items-center justify-center gap-x-1.5 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
-          <LayoutPanelTop size={16} color="blue" />
+          <LayoutPanelTop size={16} color="#176ee0" />
           <p className="text-xs font-semibold text-black">
-            {viewDetails?.name}
+            {viewDetails?.name ?? "View"}
           </p>
           <ChevronDown strokeWidth={1.5} size={16} />
         </div>
@@ -117,9 +121,23 @@ const OptionsTab = ({
           <EyeOff strokeWidth={1.5} size={16} />
           <p className="text-xs">Hide fields</p>
         </div> */}
+        <button
+          onClick={handleCreate10kRows}
+          disabled={isCreatingBulkRows}
+          className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isCreatingBulkRows ? (
+            <Spinner size={16} />
+          ) : (
+            <Plus strokeWidth={1.5} size={16} />
+          )}
+          <p className="text-xs">
+            {isCreatingBulkRows ? "Adding 10k rows..." : "Add 10k row"}
+          </p>
+        </button>
 
         <button
-          onClick={handleCreateBulkRows}
+          onClick={handleCreate100kRows}
           disabled={isCreatingBulkRows}
           className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80 disabled:cursor-not-allowed disabled:opacity-50"
         >

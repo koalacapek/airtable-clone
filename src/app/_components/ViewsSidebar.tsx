@@ -175,7 +175,7 @@ const ViewsSidebar = ({
                 onClick={() => setActiveView(view.id)}
                 className="flex flex-1 items-center gap-2 truncate group-hover:cursor-pointer"
               >
-                <Grid size={14} strokeWidth={1.5} color="blue" />
+                <Grid size={14} strokeWidth={1.5} color="#176ee0" />
                 <span className="truncate text-xs">{view.name}</span>
               </button>
 
