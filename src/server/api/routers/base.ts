@@ -136,10 +136,10 @@ export const baseRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const base = await ctx.db.base.delete({
+      await ctx.db.base.delete({
         where: { id: input.id, userId: ctx.session.user.id },
       });
-      return base;
+      return { success: true };
     }),
 
   getById: protectedProcedure
