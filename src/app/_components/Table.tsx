@@ -53,7 +53,7 @@ const Table = ({
   } = api.table.getTableWithDataInfinite.useInfiniteQuery(
     {
       tableId: activeTab!,
-      // limit: 50,
+      limit: 1000,
       filters: viewConditions?.filters ?? {},
       sort: viewConditions?.sort ?? {},
       hiddenColumns: viewConditions?.hiddenColumns ?? [],

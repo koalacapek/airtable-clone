@@ -169,7 +169,12 @@ export const tableRouter = createTRPCRouter({
       z.object({
         tableId: z.string(),
         limit: z.number().default(1000),
-        cursor: z.string().optional(),
+        cursor: z
+          .object({
+            value: z.string().nullable(),
+            id: z.string(),
+          })
+          .optional(),
         filters: z.record(z.any()).optional(),
         sort: z.record(z.any()).optional(),
         hiddenColumns: z.array(z.string()).optional(),
@@ -178,25 +183,22 @@ export const tableRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const { tableId, limit, cursor, filters, sort } = input;
 
-      // Get columns for this table
       const columns = await ctx.db.column.findMany({
         where: { tableId },
         select: { id: true, name: true, type: true },
       });
 
-      // Build SQL query with JOINs for efficient filtering and sorting
       let sql = `
-        SELECT r.id, r."tableId", r."createdAt"
-        FROM "Row" r
-      `;
+      SELECT r.id, r."tableId", r."createdAt"
+      FROM "Row" r
+    `;
 
-      const params: (string | number)[] = [];
+      const params: (string | number | null)[] = [];
       let paramIndex = 1;
 
-      // Add JOINs for filtering
+      // Filter JOINs
       if (filters && Object.keys(filters).length > 0) {
-        const filterEntries = Object.entries(filters);
-        filterEntries.forEach(([columnName, filterConfig], index) => {
+        Object.entries(filters).forEach(([columnName, _], index) => {
           const column = columns.find((col) => col.name === columnName);
           if (!column) return;
 
@@ -206,115 +208,122 @@ export const tableRouter = createTRPCRouter({
         });
       }
 
-      // Add JOINs for sorting
+      // Sort JOIN
+      let sortColumnId: string | undefined;
       if (sort && Object.keys(sort).length > 0) {
-        const sortEntries = Object.entries(sort);
-        const firstSortEntry = sortEntries[0];
-        if (firstSortEntry) {
-          const [columnName, sortConfig] = firstSortEntry as [
-            string,
-            { direction: "asc" | "desc" },
-          ];
-          const column = columns.find((col) => col.name === columnName);
-          if (column) {
-            sql += ` LEFT JOIN "Cell" sort_cell ON r.id = sort_cell."rowId" AND sort_cell."columnId" = $${paramIndex++}`;
-            params.push(column.id);
-          }
+        const [columnName, sortConfig] = Object.entries(sort)[0] as [
+          string,
+          { direction: "asc" | "desc" },
+        ];
+        const column = columns.find((col) => col.name === columnName);
+        if (column) {
+          sortColumnId = column.id;
+          sql += ` LEFT JOIN "Cell" sort_cell ON r.id = sort_cell."rowId" AND sort_cell."columnId" = $${paramIndex++}`;
+          params.push(column.id);
+          // Add sortValue to SELECT after the join is added
+          sql = sql.replace(
+            'SELECT r.id, r."tableId", r."createdAt"',
+            'SELECT r.id, r."tableId", r."createdAt", sort_cell.value AS "sortValue"',
+          );
         }
       }
 
-      // WHERE clause
+      // WHERE base
       sql += ` WHERE r."tableId" = $${paramIndex++}`;
       params.push(tableId);
 
-      // Add filter conditions
+      // Filter conditions
       if (filters && Object.keys(filters).length > 0) {
-        const filterEntries = Object.entries(filters);
-        filterEntries.forEach(([columnName, filterConfig], index) => {
+        Object.entries(filters).forEach(([columnName, filterConfig], index) => {
           const column = columns.find((col) => col.name === columnName);
           if (!column) return;
 
           const alias = `c${index}`;
-          const filterOp = (filterConfig as { op: string }).op;
-          const filterValue = (filterConfig as { value?: string }).value;
+          const { op, value } = filterConfig as { op: string; value?: string };
 
-          if (filterOp === "is_empty") {
+          if (op === "is_empty") {
             sql += ` AND ${alias}.id IS NULL`;
-          } else if (filterOp === "is_not_empty") {
+          } else if (op === "is_not_empty") {
             sql += ` AND ${alias}.id IS NOT NULL`;
-          } else if (filterOp === "contains") {
+          } else if (op === "contains") {
             sql += ` AND ${alias}.value ILIKE $${paramIndex++}`;
-            params.push(`%${filterValue}%`);
-          } else if (filterOp === "not_contains") {
+            params.push(`%${value}%`);
+          } else if (op === "not_contains") {
             sql += ` AND (${alias}.id IS NULL OR ${alias}.value NOT ILIKE $${paramIndex++})`;
-            params.push(`%${filterValue}%`);
-          } else if (filterOp === "equal") {
+            params.push(`%${value}%`);
+          } else if (op === "equal") {
             sql += ` AND ${alias}.value = $${paramIndex++}`;
-            params.push(filterValue ?? "");
-          } else if (filterOp === "greater") {
+            params.push(value ?? "");
+          } else if (op === "greater") {
             sql += ` AND ${alias}.value > $${paramIndex++}`;
-            params.push(filterValue ?? "");
-          } else if (filterOp === "smaller") {
+            params.push(value ?? "");
+          } else if (op === "smaller") {
             sql += ` AND ${alias}.value < $${paramIndex++}`;
-            params.push(filterValue ?? "");
+            params.push(value ?? "");
           }
         });
       }
 
-      // Add cursor condition
-      if (cursor) {
+      // Cursor-based pagination
+      if (cursor && sortColumnId) {
+        sql += ` AND (COALESCE(LOWER(sort_cell.value), ''), r.id) > ($${paramIndex++}, $${paramIndex++})`;
+        params.push(cursor.value ?? "", cursor.id);
+      } else if (cursor) {
         sql += ` AND r.id > $${paramIndex++}`;
-        params.push(cursor);
+        params.push(cursor.id);
       }
 
-      // ORDER BY clause
-      if (sort && Object.keys(sort).length > 0) {
-        const sortEntries = Object.entries(sort);
-        const firstSortEntry = sortEntries[0];
-        if (firstSortEntry) {
-          const [columnName, sortConfig] = firstSortEntry as [
-            string,
-            { direction: "asc" | "desc" },
-          ];
-          const sortDirection = sortConfig?.direction ?? "asc";
-          sql += ` ORDER BY LOWER(sort_cell.value) ${sortDirection.toUpperCase()}, r.id`;
-        }
+      // ORDER BY
+      if (sortColumnId) {
+        const sortDirection =
+          (Object.values(sort!)[0] as { direction: "asc" | "desc" })
+            ?.direction ?? "asc";
+        sql += ` ORDER BY LOWER(sort_cell.value) ${sortDirection.toUpperCase()}, r.id`;
       } else {
         sql += ` ORDER BY r.id`;
       }
 
-      // LIMIT clause
+      // LIMIT
       sql += ` LIMIT $${paramIndex++}`;
       params.push(limit + 1);
 
-      // Execute the query
+      // Run query
       const result = await ctx.db.$queryRawUnsafe(sql, ...params);
-      const rows = result as { id: string; tableId: string; createdAt: Date }[];
+      const rows = result as {
+        id: string;
+        tableId: string;
+        createdAt: Date;
+        sortValue?: string | null;
+      }[];
 
-      // Get the actual row data with cells
-      const rowIds = rows.map((row) => row.id);
+      const rowIds = rows.map((r) => r.id);
       const rowsWithCells = await ctx.db.row.findMany({
         where: { id: { in: rowIds } },
         include: { cells: true },
       });
 
-      // Preserve the sort order from the SQL query
-      const sortedRowsWithCells = rowIds.map(
-        (id) => rowsWithCells.find((row) => row.id === id)!,
+      const sortedRows = rowIds.map(
+        (id) => rowsWithCells.find((r) => r.id === id)!,
       );
 
-      // Determine next cursor
-      let nextCursor: string | undefined = undefined;
+      // Cursor for next page
+      let nextCursor: typeof input.cursor | undefined = undefined;
       if (rows.length > limit) {
         const nextItem = rows.pop();
-        nextCursor = nextItem!.id;
+        if (nextItem) {
+          nextCursor = {
+            id: nextItem.id,
+            value: nextItem.sortValue ?? null,
+          };
+        }
       }
 
       return {
-        rows: sortedRowsWithCells,
+        rows: sortedRows,
         nextCursor,
       };
     }),
+
   getMatchingCellIds: protectedProcedure
     .input(
       z.object({
