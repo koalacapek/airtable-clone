@@ -66,10 +66,7 @@ export const rowRouter = createTRPCRouter({
       });
 
       // Much smaller batch size to avoid transaction timeouts
-      const BATCH_SIZE = Math.min(
-        50,
-        Math.max(10, Math.floor(500 / columns.length)),
-      );
+      const BATCH_SIZE = input.count / 10;
 
       let totalCreated = 0;
 
@@ -79,50 +76,44 @@ export const rowRouter = createTRPCRouter({
         const batchStartIndex = currentRowCount + totalCreated;
 
         // Use a separate transaction for each batch with shorter timeout
-        await ctx.db.$transaction(
-          async (tx) => {
-            // Create rows for this batch
-            const rowsToCreate = Array.from({ length: batchSize }, () => ({
-              tableId: input.tableId,
-            }));
 
-            const rows = await tx.row.createManyAndReturn({
-              data: rowsToCreate,
-            });
+        // Create rows for this batch
+        const rowsToCreate = Array.from({ length: batchSize }, () => ({
+          tableId: input.tableId,
+        }));
 
-            // Generate cells for this batch
-            const cellsToCreate = rows.flatMap((row, rowIndex) => {
-              const globalRowIndex = batchStartIndex + rowIndex;
+        const rows = await ctx.db.row.createManyAndReturn({
+          data: rowsToCreate,
+        });
 
-              return columns.map((col) => {
-                let value = "";
+        // Generate cells for this batch
+        const cellsToCreate = rows.flatMap((row, rowIndex) => {
+          const globalRowIndex = batchStartIndex + rowIndex;
 
-                if (col.name === "#") {
-                  value = (globalRowIndex + 1).toString();
-                } else if (col.type === "TEXT") {
-                  // Generate fake data on-demand to reduce memory usage
-                  value = faker.person.fullName();
-                } else if (col.type === "NUMBER") {
-                  value = faker.number.int({ min: 1, max: 1000 }).toString();
-                }
+          return columns.map((col) => {
+            let value = "";
 
-                return {
-                  rowId: row.id,
-                  columnId: col.id,
-                  value,
-                };
-              });
-            });
+            if (col.name === "#") {
+              value = (globalRowIndex + 1).toString();
+            } else if (col.type === "TEXT") {
+              // Generate fake data on-demand to reduce memory usage
+              value = faker.person.fullName();
+            } else if (col.type === "NUMBER") {
+              value = faker.number.int({ min: 1, max: 1000 }).toString();
+            }
 
-            // Create all cells for this batch
-            await tx.cell.createMany({
-              data: cellsToCreate,
-            });
-          },
-          {
-            timeout: 3000, // 3 second timeout per batch
-          },
-        );
+            return {
+              rowId: row.id,
+              columnId: col.id,
+              value,
+            };
+          });
+        });
+
+        // Create all cells for this batch
+        await ctx.db.cell.createMany({
+          data: cellsToCreate,
+        });
 
         totalCreated += batchSize;
       }
