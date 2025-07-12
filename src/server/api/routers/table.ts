@@ -3,7 +3,6 @@ import { z } from "zod";
 import { faker } from "@faker-js/faker";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import type { Prisma } from "@prisma/client";
 
 export const tableRouter = createTRPCRouter({
   getAllByBase: protectedProcedure
@@ -76,6 +75,17 @@ export const tableRouter = createTRPCRouter({
         where: { tableId: table.id },
       });
 
+      // Also create default views
+      await ctx.db.view.create({
+        data: {
+          name: "Grid View",
+          tableId: table.id,
+          filters: {},
+          sort: {},
+          hiddenColumns: [],
+        },
+      });
+
       const rowNumberCol = columns.find((c) => c.name === "#");
       const nameCol = columns.find((c) => c.name === "Name");
       const ageCol = columns.find((c) => c.name === "Age");
@@ -119,6 +129,7 @@ export const tableRouter = createTRPCRouter({
       });
       return table;
     }),
+
   getTableWithData: protectedProcedure
     .input(z.object({ tableId: z.string() }))
     .query(async ({ ctx, input }) => {

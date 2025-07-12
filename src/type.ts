@@ -60,7 +60,6 @@ export interface IOptionsTabProps {
     hiddenColumns: string[];
   } | null;
   activeView: string | null;
-  baseId?: string;
   searchValue?: string;
   onSearchChange?: (searchValue: string) => void;
   matchingCells?: {
@@ -78,8 +77,7 @@ export interface IOptionsTabProps {
 export interface IView {
   id: string;
   name: string;
-  tableId?: string;
-  baseId?: string;
+  tableId: string;
   filters: Record<string, unknown>;
   sort: Record<string, unknown>;
   hiddenColumns: string[];
@@ -87,7 +85,7 @@ export interface IView {
 }
 
 export interface IViewsSidebarProps {
-  baseId: string | null;
+  tableId: string | null;
   activeView: string | null;
   setActiveView: React.Dispatch<React.SetStateAction<string | null>>;
   onViewChange: (

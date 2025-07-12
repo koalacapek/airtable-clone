@@ -63,6 +63,11 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     }
   }, [tables, activeTab]);
 
+  // Reset activeView when activeTab changes
+  useEffect(() => {
+    setActiveView(null);
+  }, [activeTab]);
+
   const handleViewChange = useCallback(
     (
       conditions: {
@@ -105,7 +110,6 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
         activeTab={activeTab}
         viewConditions={viewConditions}
         activeView={activeView}
-        baseId={baseId}
         searchValue={searchValue}
         onSearchChange={setSearchValue}
         matchingCells={matchingCells}
@@ -117,7 +121,7 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
       />
       <div className="flex flex-1 overflow-hidden">
         <ViewsSidebar
-          baseId={baseId}
+          tableId={activeTab}
           activeView={activeView}
           setActiveView={setActiveView}
           onViewChange={handleViewChange}

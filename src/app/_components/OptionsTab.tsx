@@ -21,7 +21,6 @@ const OptionsTab = ({
   activeTab,
   viewConditions,
   activeView,
-  baseId,
   searchValue,
   onSearchChange,
   matchingCells,
@@ -39,8 +38,8 @@ const OptionsTab = ({
       await utils.table.getTableWithDataInfinite.invalidate();
       await utils.table.getTableMetadata.invalidate({ tableId: activeTab! });
       // Also invalidate the view queries to ensure the sidebar updates
-      if (baseId) {
-        await utils.view.getAllByBase.invalidate({ baseId });
+      if (activeTab) {
+        await utils.view.getAllByTable.invalidate({ tableId: activeTab });
       }
     },
   });

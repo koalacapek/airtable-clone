@@ -32,37 +32,10 @@ export const viewRouter = createTRPCRouter({
       return views;
     }),
 
-  getAllByBase: protectedProcedure
-    .input(z.object({ baseId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      // First verify the base belongs to the user
-      const base = await ctx.db.base.findFirst({
-        where: {
-          id: input.baseId,
-          userId: ctx.session.user.id,
-        },
-      });
-
-      if (!base) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Base not found or unauthorized",
-        });
-      }
-
-      const views = await ctx.db.view.findMany({
-        where: { baseId: input.baseId },
-        orderBy: { createdAt: "asc" },
-      });
-
-      return views;
-    }),
-
   create: protectedProcedure
     .input(
       z.object({
-        tableId: z.string().optional(),
-        baseId: z.string().optional(),
+        tableId: z.string(),
         name: z.string(),
         filters: z.record(z.any()).optional(),
         sort: z.record(z.any()).optional(),
@@ -70,48 +43,27 @@ export const viewRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Verify either table or base belongs to the user
-      if (input.tableId) {
-        const table = await ctx.db.table.findFirst({
-          where: {
-            id: input.tableId,
-            base: {
-              userId: ctx.session.user.id,
-            },
-          },
-        });
-
-        if (!table) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Table not found or unauthorized",
-          });
-        }
-      } else if (input.baseId) {
-        const base = await ctx.db.base.findFirst({
-          where: {
-            id: input.baseId,
+      // Verify the table belongs to the user
+      const table = await ctx.db.table.findFirst({
+        where: {
+          id: input.tableId,
+          base: {
             userId: ctx.session.user.id,
           },
-        });
+        },
+      });
 
-        if (!base) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Base not found or unauthorized",
-          });
-        }
-      } else {
+      if (!table) {
         throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Either tableId or baseId must be provided",
+          code: "NOT_FOUND",
+          message: "Table not found or unauthorized",
         });
       }
 
       const view = await ctx.db.view.create({
         data: {
           name: input.name.trim() || "Untitled View",
-          baseId: input.baseId,
+          tableId: input.tableId,
           filters: input.filters ?? {},
           sort: input.sort ?? {},
           hiddenColumns: input.hiddenColumns ?? [],
@@ -136,20 +88,11 @@ export const viewRouter = createTRPCRouter({
       const view = await ctx.db.view.findFirst({
         where: {
           id: input.id,
-          OR: [
-            {
-              table: {
-                base: {
-                  userId: ctx.session.user.id,
-                },
-              },
+          table: {
+            base: {
+              userId: ctx.session.user.id,
             },
-            {
-              base: {
-                userId: ctx.session.user.id,
-              },
-            },
-          ],
+          },
         },
       });
 
@@ -180,20 +123,11 @@ export const viewRouter = createTRPCRouter({
       const view = await ctx.db.view.findFirst({
         where: {
           id: input.id,
-          OR: [
-            {
-              table: {
-                base: {
-                  userId: ctx.session.user.id,
-                },
-              },
+          table: {
+            base: {
+              userId: ctx.session.user.id,
             },
-            {
-              base: {
-                userId: ctx.session.user.id,
-              },
-            },
-          ],
+          },
         },
       });
 
@@ -210,6 +144,7 @@ export const viewRouter = createTRPCRouter({
 
       return { success: true };
     }),
+
   getDetails: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {

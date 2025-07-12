@@ -90,11 +90,11 @@ export const baseRouter = createTRPCRouter({
 
     await ctx.db.cell.createMany({ data: cellsToCreate });
 
-    // Create a default "Grid View" for the base
+    // Create a default "Grid View" for the table
     await ctx.db.view.create({
       data: {
         name: "Grid View",
-        baseId: base.id,
+        tableId: table.id,
         filters: {},
         sort: {},
         hiddenColumns: [],

@@ -18,25 +18,31 @@ const ViewsSidebar = ({
   activeView,
   setActiveView,
   onViewChange,
-  baseId,
+  tableId,
   openView = true,
 }: IViewsSidebarProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newViewName, setNewViewName] = useState("");
   const utils = api.useUtils();
 
-  // Fetch views for the current base
-  const { data: views, isLoading } = api.view.getAllByBase.useQuery(
-    { baseId: baseId! },
-    { enabled: !!baseId },
+  // Fetch views for the current table
+  const { data: views, isLoading } = api.view.getAllByTable.useQuery(
+    { tableId: tableId! },
+    { enabled: !!tableId },
   );
 
-  // Auto-select the first view if no view is currently selected
+  // Auto-select the first view if no view is currently selected or when table changes
   useEffect(() => {
-    if (views && views.length > 0 && !activeView) {
-      setActiveView(views[0]?.id ?? null);
+    if (views && views.length > 0) {
+      // Check if current activeView belongs to this table
+      const currentViewBelongsToTable = views.some(
+        (view) => view.id === activeView,
+      );
+      if (!activeView || !currentViewBelongsToTable) {
+        setActiveView(views[0]?.id ?? null);
+      }
     }
-  }, [views, activeView, setActiveView]);
+  }, [views, activeView, setActiveView, tableId]);
 
   // Get current view from views array
   const currentView = views?.find((view) => view.id === activeView);
@@ -63,7 +69,7 @@ const ViewsSidebar = ({
         setActiveView(newView.id);
       },
       onSettled: () => {
-        void utils.view.getAllByBase.invalidate({ baseId: baseId! });
+        void utils.view.getAllByTable.invalidate({ tableId: tableId! });
       },
     });
 
@@ -75,15 +81,15 @@ const ViewsSidebar = ({
       }
     },
     onSettled: () => {
-      void utils.view.getAllByBase.invalidate({ baseId: baseId! });
+      void utils.view.getAllByTable.invalidate({ tableId: tableId! });
     },
   });
 
   const handleCreateView = () => {
-    if (!baseId || !newViewName.trim()) return;
+    if (!tableId || !newViewName.trim()) return;
 
     createView({
-      baseId: baseId,
+      tableId: tableId,
       name: newViewName.trim(),
     });
   };
