@@ -21,7 +21,6 @@ const OptionsTab = ({
   activeTab,
   viewConditions,
   activeView,
-  searchValue,
   onSearchChange,
   matchingCells,
   currentMatchIndex,
@@ -211,7 +210,7 @@ const OptionsTab = ({
 
         {/* Search */}
         <SearchTableButton
-          searchValue={searchValue}
+          activeTab={activeTab!}
           onUpdate={onSearchChange!}
           totalMatches={matchingCells?.length ?? 0}
           currentMatchIndex={currentMatchIndex}

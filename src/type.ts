@@ -117,13 +117,12 @@ export interface IHideFieldsButtonProps {
 }
 
 export interface ISearchTableButtonProps {
-  searchValue?: string;
   onUpdate: (searchValue: string) => void;
   totalMatches?: number;
   currentMatchIndex?: number;
   onNextMatch?: () => void;
   onPrevMatch?: () => void;
-  activeTab?: string | null;
+  activeTab: string;
 }
 
 export interface IAddColumnPopoverProps {

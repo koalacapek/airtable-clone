@@ -10,7 +10,6 @@ import { Button } from "~/components/ui/button";
 import type { ISearchTableButtonProps } from "~/type";
 
 const SearchTableButton = ({
-  searchValue,
   onUpdate,
   totalMatches = 0,
   currentMatchIndex = 0,
@@ -19,7 +18,7 @@ const SearchTableButton = ({
   activeTab,
 }: ISearchTableButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [localSearchValue, setLocalSearchValue] = useState(searchValue ?? "");
+  const [localSearchValue, setLocalSearchValue] = useState("");
 
   // Update search value when debounced value changes
   useEffect(() => {
@@ -29,12 +28,7 @@ const SearchTableButton = ({
   // reset search value when active tab changes
   useEffect(() => {
     setLocalSearchValue("");
-  }, [activeTab, searchValue]);
-
-  // Sync with external search value
-  useEffect(() => {
-    setLocalSearchValue(searchValue ?? "");
-  }, [searchValue]);
+  }, [activeTab]);
 
   const handleClearSearch = () => {
     setLocalSearchValue("");
