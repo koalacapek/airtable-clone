@@ -54,7 +54,7 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
             <TabsTrigger
               key={table.id}
               value={table.id}
-              className="text-gray-2 h-full max-w-fit rounded-none px-4 pt-3 pb-2 text-xs font-medium hover:cursor-pointer hover:bg-black/10 data-[state=active]:rounded-tl-sm data-[state=active]:rounded-tr-sm data-[state=active]:text-black"
+              className="text-gray-2 h-full max-w-fit rounded-none px-4 pt-3 pb-2 text-xs font-medium hover:cursor-pointer hover:bg-black/10 data-[state=active]:rounded-t-sm data-[state=active]:text-black"
             >
               {table.name}
             </TabsTrigger>

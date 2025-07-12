@@ -62,17 +62,20 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
           tableId: activeTab,
           searchValue,
           hiddenColumns: viewConditions?.hiddenColumns ?? [],
+          filters: viewConditions?.filters ?? {},
         }
       : {
           tableId: "",
           searchValue: "",
           hiddenColumns: [],
+          filters: {},
         },
     { enabled: !!activeTab && !!searchValue && searchValue.trim() !== "" },
   );
 
   useEffect(() => {
     setMatchingCells(cells ?? []);
+    console.log(cells);
   }, [cells]);
 
   useEffect(() => {

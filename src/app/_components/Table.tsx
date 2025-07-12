@@ -302,7 +302,7 @@ const Table = ({
       >
         <div className="overflow-x-auto">
           <table className="w-max border border-gray-200 text-sm">
-            <thead className="sticky -top-0.5 z-10 bg-white">
+            <thead className="sticky -top-0.5 z-40 bg-white">
               {tableInstance.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
@@ -331,9 +331,9 @@ const Table = ({
                         key={header.id}
                         className={`overflow-hidden border p-2 text-left ${
                           isRowNumberColumn
-                            ? "sticky left-0 z-30 w-16 bg-white"
+                            ? "sticky left-0 z-50 w-16 bg-white"
                             : isNameColumn
-                              ? "sticky left-16 z-20 w-48"
+                              ? "sticky left-16 z-50 w-48"
                               : "w-32"
                         } ${isSorted ? "bg-blue-100" : ""} ${
                           isFiltered ? "bg-yellow-100" : ""

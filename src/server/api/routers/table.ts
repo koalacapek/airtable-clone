@@ -362,15 +362,88 @@ export const tableRouter = createTRPCRouter({
         tableId: z.string(),
         searchValue: z.string(),
         hiddenColumns: z.array(z.string()).optional(),
+        filters: z.record(z.any()).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { tableId, searchValue, hiddenColumns = [] } = input;
+      const { tableId, searchValue, hiddenColumns = [], filters } = input;
       if (!searchValue || searchValue.trim() === "") return [];
 
+      // Get columns for filter processing
+      const columns = await ctx.db.column.findMany({
+        where: { tableId },
+        select: { id: true, name: true, type: true },
+      });
+
+      // Build the base query to find rows that match the filters
+      let rowIds: string[] = [];
+
+      if (filters && Object.keys(filters).length > 0) {
+        // Use the same filtering logic as getTableWithDataInfinite
+        let sql = `
+        SELECT r.id
+        FROM "Row" r
+      `;
+
+        const params: (string | number | null)[] = [];
+        let paramIndex = 1;
+
+        // Filter JOINs
+        Object.entries(filters).forEach(([columnName, _], index) => {
+          const column = columns.find((col) => col.name === columnName);
+          if (!column) return;
+
+          const alias = `c${index}`;
+          sql += ` LEFT JOIN "Cell" ${alias} ON r.id = ${alias}."rowId" AND ${alias}."columnId" = $${paramIndex++}`;
+          params.push(column.id);
+        });
+
+        // WHERE base
+        sql += ` WHERE r."tableId" = $${paramIndex++}`;
+        params.push(tableId);
+
+        // Filter conditions
+        Object.entries(filters).forEach(([columnName, filterConfig], index) => {
+          const column = columns.find((col) => col.name === columnName);
+          if (!column) return;
+
+          const alias = `c${index}`;
+          const { op, value } = filterConfig as { op: string; value?: string };
+
+          if (op === "is_empty") {
+            sql += ` AND ${alias}.id IS NULL`;
+          } else if (op === "is_not_empty") {
+            sql += ` AND ${alias}.id IS NOT NULL`;
+          } else if (op === "contains") {
+            sql += ` AND ${alias}.value ILIKE $${paramIndex++}`;
+            params.push(`%${value}%`);
+          } else if (op === "not_contains") {
+            sql += ` AND (${alias}.id IS NULL OR ${alias}.value NOT ILIKE $${paramIndex++})`;
+            params.push(`%${value}%`);
+          } else if (op === "equal") {
+            sql += ` AND ${alias}.value = $${paramIndex++}`;
+            params.push(value ?? "");
+          } else if (op === "greater") {
+            sql += ` AND ${alias}.value > $${paramIndex++}`;
+            params.push(value ?? "");
+          } else if (op === "smaller") {
+            sql += ` AND ${alias}.value < $${paramIndex++}`;
+            params.push(value ?? "");
+          }
+        });
+
+        // Run the filter query to get matching row IDs
+        const result = await ctx.db.$queryRawUnsafe(sql, ...params);
+        rowIds = (result as { id: string }[]).map((r) => r.id);
+      }
+
+      // Now find cells that match the search value within the filtered rows
       const cells = await ctx.db.cell.findMany({
         where: {
-          row: { tableId },
+          row: {
+            tableId,
+            ...(rowIds.length > 0 && { id: { in: rowIds } }),
+          },
           columnId: {
             notIn: hiddenColumns,
           },

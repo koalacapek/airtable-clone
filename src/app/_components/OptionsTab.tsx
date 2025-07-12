@@ -120,10 +120,7 @@ const OptionsTab = ({
       {/* Filter, Sort, etc. */}
       <div className="flex items-center gap-x-3">
         {/* Visibility */}
-        {/* <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
-          <EyeOff strokeWidth={1.5} size={16} />
-          <p className="text-xs">Hide fields</p>
-        </div> */}
+
         <button
           onClick={handleCreate10kRows}
           disabled={isCreatingBulkRows}
@@ -166,10 +163,6 @@ const OptionsTab = ({
           filters={viewConditions?.filters}
           onUpdate={handleUpdateFilter}
         />
-        {/* <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
-          <Filter strokeWidth={1.5} size={16} />
-          <p className="text-xs">Filter</p>
-        </div> */}
 
         {/* Group */}
         <div className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80">
