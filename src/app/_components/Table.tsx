@@ -367,7 +367,7 @@ const Table = ({
                     return (
                       <td
                         key={cell.id}
-                        className={`overflow-hidden border p-2 focus-within:border-2 focus-within:border-blue-500 ${
+                        className={`z-0 overflow-hidden border-2 p-2 focus-within:z-10 focus-within:border-blue-500 ${
                           isRowNumberColumn ? "w-12" : "w-32"
                         } ${isRowNumberColumn ? "" : "hover:bg-gray-100"}`}
                       >

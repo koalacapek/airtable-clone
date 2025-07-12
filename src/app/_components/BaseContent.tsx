@@ -26,6 +26,47 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   >([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [openView, setOpenView] = useState(true);
+  // Store active view per table with localStorage persistence
+  const [tableViews, setTableViews] = useState<Record<string, string>>({});
+
+  // Load persisted state from localStorage on mount
+  useEffect(() => {
+    try {
+      const persistedTableViews = localStorage.getItem(`tableViews_${baseId}`);
+      if (persistedTableViews) {
+        setTableViews(
+          JSON.parse(persistedTableViews) as Record<string, string>,
+        );
+      }
+
+      const persistedActiveTab = localStorage.getItem(`activeTab_${baseId}`);
+      if (persistedActiveTab) {
+        setActiveTab(persistedActiveTab);
+      }
+    } catch (error) {
+      console.error("Error loading persisted state:", error);
+    }
+  }, [baseId]);
+
+  // Persist tableViews to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(`tableViews_${baseId}`, JSON.stringify(tableViews));
+    } catch (error) {
+      console.error("Error persisting tableViews:", error);
+    }
+  }, [tableViews, baseId]);
+
+  // Persist activeTab to localStorage whenever it changes
+  useEffect(() => {
+    if (activeTab) {
+      try {
+        localStorage.setItem(`activeTab_${baseId}`, activeTab);
+      } catch (error) {
+        console.error("Error persisting activeTab:", error);
+      }
+    }
+  }, [activeTab, baseId]);
 
   // Fetch tables
   const { data: tables } = api.table.getAllByBase.useQuery({
@@ -63,10 +104,40 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     }
   }, [tables, activeTab]);
 
-  // Reset activeView when activeTab changes
+  // Update active view when activeTab changes
   useEffect(() => {
-    setActiveView(null);
-  }, [activeTab]);
+    if (activeTab) {
+      // Get the stored view for this table, or null if none exists
+      const storedView = tableViews[activeTab] ?? null;
+      setActiveView(storedView);
+    }
+  }, [activeTab, tableViews]);
+
+  // Validate persisted activeTab exists
+  useEffect(() => {
+    if (tables && activeTab) {
+      const tableExists = tables.some((table) => table.id === activeTab);
+      if (!tableExists) {
+        // If persisted table doesn't exist, fall back to first table
+        setActiveTab(tables[0]?.id ?? null);
+        // Clear the invalid table from tableViews
+        setTableViews((prev) => {
+          const { [activeTab]: removed, ...rest } = prev;
+          return rest;
+        });
+      }
+    }
+  }, [tables, activeTab]);
+
+  // Update tableViews when activeView changes
+  useEffect(() => {
+    if (activeTab && activeView) {
+      setTableViews((prev) => ({
+        ...prev,
+        [activeTab]: activeView,
+      }));
+    }
+  }, [activeTab, activeView]);
 
   const handleViewChange = useCallback(
     (

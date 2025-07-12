@@ -46,7 +46,7 @@ const Cell = ({
     <div className="relative w-full overflow-hidden">
       <input
         type={colType === ColumnType.NUMBER ? "number" : "text"}
-        className={`focus:border-blue-1 w-full truncate border-none bg-transparent outline-none ${
+        className={`w-full truncate bg-transparent outline-none ${
           isCurrent ? "bg-orange-400" : isMatch ? "bg-yellow-200" : ""
         }`}
         value={value}
