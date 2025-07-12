@@ -108,16 +108,9 @@ const ViewsSidebar = ({
     >
       <div
         onClick={() => setIsCreating(true)}
-        className="mb-4 flex items-center rounded-sm py-1 hover:cursor-pointer hover:bg-gray-200"
+        className="mb-3 flex items-center gap-x-2 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200"
       >
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsCreating(true)}
-          className="h-6 w-6 p-0"
-        >
-          <Plus size={14} strokeWidth={1.5} />
-        </Button>
+        <Plus size={14} strokeWidth={1.5} />
         <h3 className="text-xs text-gray-900">Create new...</h3>
       </div>
 

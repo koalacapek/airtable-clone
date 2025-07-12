@@ -127,7 +127,7 @@ const BaseCard = (base: IBase) => {
         <DropdownMenuContent>
           <DropdownMenuItem asChild>
             <button
-              className="flex w-full items-center gap-x-3"
+              className="flex w-full items-center gap-x-3 hover:cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsEditing(!isEditing);
@@ -139,7 +139,7 @@ const BaseCard = (base: IBase) => {
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <button
-              className="flex w-full items-center gap-x-3"
+              className="flex w-full items-center gap-x-3 hover:cursor-pointer"
               onClick={(e) => {
                 e.stopPropagation();
                 deleteBase({ id: base.id });
