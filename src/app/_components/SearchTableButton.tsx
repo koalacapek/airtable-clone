@@ -26,17 +26,15 @@ const SearchTableButton = ({
     onUpdate(localSearchValue.trim());
   }, [localSearchValue, onUpdate]);
 
+  // reset search value when active tab changes
+  useEffect(() => {
+    setLocalSearchValue("");
+  }, [activeTab, searchValue]);
+
   // Sync with external search value
   useEffect(() => {
     setLocalSearchValue(searchValue ?? "");
   }, [searchValue]);
-
-  // If popover is closed, clear search value
-  useEffect(() => {
-    if (!isOpen) {
-      setLocalSearchValue("");
-    }
-  }, [isOpen]);
 
   const handleClearSearch = () => {
     setLocalSearchValue("");

@@ -31,6 +31,10 @@ const ViewsSidebar = ({
     { enabled: !!tableId },
   );
 
+  // useEffect(() => {
+  //   console.log(tableId, views);
+  // }, [tableId, views]);
+
   // Auto-select the first view if no view is currently selected or when table changes
   useEffect(() => {
     if (views && views.length > 0) {

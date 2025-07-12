@@ -27,18 +27,10 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [openView, setOpenView] = useState(true);
   // Store active view per table with localStorage persistence
-  const [tableViews, setTableViews] = useState<Record<string, string>>({});
 
   // Load persisted state from localStorage on mount
   useEffect(() => {
     try {
-      const persistedTableViews = localStorage.getItem(`tableViews_${baseId}`);
-      if (persistedTableViews) {
-        setTableViews(
-          JSON.parse(persistedTableViews) as Record<string, string>,
-        );
-      }
-
       const persistedActiveTab = localStorage.getItem(`activeTab_${baseId}`);
       if (persistedActiveTab) {
         setActiveTab(persistedActiveTab);
@@ -47,15 +39,6 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
       console.error("Error loading persisted state:", error);
     }
   }, [baseId]);
-
-  // Persist tableViews to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(`tableViews_${baseId}`, JSON.stringify(tableViews));
-    } catch (error) {
-      console.error("Error persisting tableViews:", error);
-    }
-  }, [tableViews, baseId]);
 
   // Persist activeTab to localStorage whenever it changes
   useEffect(() => {
@@ -104,15 +87,6 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     }
   }, [tables, activeTab]);
 
-  // Update active view when activeTab changes
-  useEffect(() => {
-    if (activeTab) {
-      // Get the stored view for this table, or null if none exists
-      const storedView = tableViews[activeTab] ?? null;
-      setActiveView(storedView);
-    }
-  }, [activeTab, tableViews]);
-
   // Validate persisted activeTab exists
   useEffect(() => {
     if (tables && activeTab) {
@@ -120,24 +94,9 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
       if (!tableExists) {
         // If persisted table doesn't exist, fall back to first table
         setActiveTab(tables[0]?.id ?? null);
-        // Clear the invalid table from tableViews
-        setTableViews((prev) => {
-          const { [activeTab]: removed, ...rest } = prev;
-          return rest;
-        });
       }
     }
   }, [tables, activeTab]);
-
-  // Update tableViews when activeView changes
-  useEffect(() => {
-    if (activeTab && activeView) {
-      setTableViews((prev) => ({
-        ...prev,
-        [activeTab]: activeView,
-      }));
-    }
-  }, [activeTab, activeView]);
 
   const handleViewChange = useCallback(
     (
