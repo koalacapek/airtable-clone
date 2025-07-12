@@ -421,7 +421,7 @@ const Table = ({
                               ? "bg-yellow-200 hover:bg-yellow-200"
                               : ""
                           } ${isSorted ? "bg-blue-50" : ""} ${
-                            isFiltered ? "bg-yellow-50" : ""
+                            isFiltered ? "bg-green-50" : ""
                           } `}
                         >
                           {flexRender(
