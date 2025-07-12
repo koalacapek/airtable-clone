@@ -16,6 +16,7 @@ const SearchTableButton = ({
   currentMatchIndex = 0,
   onNextMatch,
   onPrevMatch,
+  activeTab,
 }: ISearchTableButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [localSearchValue, setLocalSearchValue] = useState(searchValue ?? "");

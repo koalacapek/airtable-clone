@@ -123,6 +123,7 @@ export interface ISearchTableButtonProps {
   currentMatchIndex?: number;
   onNextMatch?: () => void;
   onPrevMatch?: () => void;
+  activeTab?: string | null;
 }
 
 export interface IAddColumnPopoverProps {

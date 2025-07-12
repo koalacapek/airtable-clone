@@ -358,14 +358,22 @@ const Table = ({
                       (mc) => mc.id === cellData.cellId,
                     );
 
+                    const isCurrent = isMatch && matchIdx === currentMatchIndex;
+
                     return (
                       <td
                         key={cell.id}
                         className={`overflow-hidden border-2 p-2 focus-within:border-blue-500 ${
                           isRowNumberColumn ? "w-12" : "w-32"
                         } ${isRowNumberColumn ? "" : "hover:bg-gray-100"} ${
-                          isMatch ? "bg-yellow-200" : ""
-                        } ${matchIdx === currentMatchIndex && isMatch ? "bg-orange-400" : ""}`}
+                          isCurrent && isMatch
+                            ? "bg-orange-400 hover:bg-orange-400"
+                            : ""
+                        } ${
+                          isMatch && !isCurrent
+                            ? "bg-yellow-200 hover:bg-yellow-200"
+                            : ""
+                        } `}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
