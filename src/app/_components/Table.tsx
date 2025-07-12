@@ -29,6 +29,7 @@ const Table = ({
 }: ITableProps) => {
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnType, setNewColumnType] = useState<"TEXT" | "NUMBER">("TEXT");
+
   const utils = api.useUtils();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -246,14 +247,6 @@ const Table = ({
           const cellData: Cell = row.getValue(col.name);
           const column = tableMetadata.columns.find((c) => c.name === col.name);
 
-          // Find if this cell is a match
-          const isMatch = matchingCells?.some(
-            (mc) => mc.id === cellData.cellId,
-          );
-          // Find the index in matchPositions
-          const matchIdx = matchPositions.findIndex(
-            (mc) => mc.id === cellData.cellId,
-          );
           return (
             <CellComponent
               readOnly={isReadOnly}
@@ -266,21 +259,12 @@ const Table = ({
                 handleUpdate(newValue, cellId)
               }
               searchValue={searchValue}
-              isMatch={isMatch}
-              isCurrentMatch={matchIdx === currentMatchIndex && isMatch}
             />
           );
         },
       };
     });
-  }, [
-    tableMetadata,
-    handleUpdate,
-    matchingCells,
-    matchPositions,
-    searchValue,
-    currentMatchIndex,
-  ]);
+  }, [tableMetadata, handleUpdate, searchValue]);
 
   const tableInstance = useReactTable({
     data,
@@ -363,13 +347,25 @@ const Table = ({
                 <tr key={row.id} data-index={virtualRow.index}>
                   {row.getVisibleCells().map((cell) => {
                     const isRowNumberColumn = cell.column.id === "#";
+                    const cellData: Cell = row.getValue(cell.column.id);
+
+                    // Find if this cell is a match
+                    const isMatch = matchingCells?.some(
+                      (mc) => mc.id === cellData.cellId,
+                    );
+                    // Find the index in matchPositions
+                    const matchIdx = matchPositions.findIndex(
+                      (mc) => mc.id === cellData.cellId,
+                    );
 
                     return (
                       <td
                         key={cell.id}
-                        className={`z-0 overflow-hidden border-2 p-2 focus-within:z-10 focus-within:border-blue-500 ${
+                        className={`overflow-hidden border-2 p-2 focus-within:border-blue-500 ${
                           isRowNumberColumn ? "w-12" : "w-32"
-                        } ${isRowNumberColumn ? "" : "hover:bg-gray-100"}`}
+                        } ${isRowNumberColumn ? "" : "hover:bg-gray-100"} ${
+                          isMatch ? "bg-yellow-200" : ""
+                        } ${matchIdx === currentMatchIndex && isMatch ? "bg-orange-400" : ""}`}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
