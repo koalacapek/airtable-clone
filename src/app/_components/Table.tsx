@@ -300,151 +300,164 @@ const Table = ({
         className="flex-1 overflow-y-auto"
         onScroll={(e) => handleScroll(e.currentTarget)}
       >
-        <table className="w-full table-fixed border border-gray-200 text-sm">
-          <thead className="sticky -top-0.5 z-10 bg-white">
-            {tableInstance.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const isRowNumberColumn = header.column.id === "#";
-                  const column = tableMetadata.columns.find(
-                    (c) => c.name === header.column.id,
-                  );
-
-                  // Check if this column is sorted
-                  const isSorted =
-                    viewConditions?.sort &&
-                    Object.keys(viewConditions.sort).includes(
-                      column?.name ?? "",
-                    );
-
-                  // Check if this column is filtered
-                  const isFiltered =
-                    viewConditions?.filters &&
-                    Object.keys(viewConditions.filters).includes(
-                      column?.name ?? "",
-                    );
-
-                  return (
-                    <th
-                      key={header.id}
-                      className={`overflow-hidden border p-2 text-left ${
-                        isRowNumberColumn ? "w-16" : "w-32"
-                      } ${isSorted ? "bg-blue-100" : ""} ${
-                        isFiltered ? "bg-yellow-100" : ""
-                      } ${isSorted && isFiltered ? "bg-green-100" : ""}`}
-                    >
-                      {flexRender(
-                        header.column.columnDef.header,
-                        header.getContext(),
-                      )}
-                    </th>
-                  );
-                })}
-                <th className="w-12 border-b p-2 text-left">
-                  <AddColumnPopover
-                    newColumnName={newColumnName}
-                    setNewColumnName={setNewColumnName}
-                    newColumnType={newColumnType}
-                    setNewColumnType={setNewColumnType}
-                    onSubmit={handleCreateColumn}
-                    isCreating={isCreatingColumn}
-                  />
-                </th>
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {paddingTop > 0 && (
-              <tr>
-                <td style={{ height: `${paddingTop}px` }} />
-              </tr>
-            )}
-            {virtualRows.map((virtualRow) => {
-              const row = tableInstance.getRowModel().rows[virtualRow.index];
-              if (!row) return null;
-
-              return (
-                <tr key={row.id} data-index={virtualRow.index}>
-                  {row.getVisibleCells().map((cell) => {
-                    const isRowNumberColumn = cell.column.id === "#";
-                    const cellData: Cell = row.getValue(cell.column.id);
+        <div className="overflow-x-auto">
+          <table className="w-max border border-gray-200 text-sm">
+            <thead className="sticky -top-0.5 z-10 bg-white">
+              {tableInstance.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const isRowNumberColumn = header.column.id === "#";
+                    const isNameColumn = header.column.id === "Name";
                     const column = tableMetadata.columns.find(
-                      (c) => c.name === cell.column.id,
+                      (c) => c.name === header.column.id,
                     );
 
-                    // Check if this column is sorted or filtered
+                    // Check if this column is sorted
                     const isSorted =
                       viewConditions?.sort &&
                       Object.keys(viewConditions.sort).includes(
                         column?.name ?? "",
                       );
+
+                    // Check if this column is filtered
                     const isFiltered =
                       viewConditions?.filters &&
                       Object.keys(viewConditions.filters).includes(
                         column?.name ?? "",
                       );
 
-                    // Find if this cell is a match
-                    const isMatch = matchingCells?.some(
-                      (mc) => mc.id === cellData.cellId,
-                    );
-                    // Find the index in matchPositions
-                    const matchIdx = matchPositions.findIndex(
-                      (mc) => mc.id === cellData.cellId,
-                    );
-
-                    const isCurrent = isMatch && matchIdx === currentMatchIndex;
-
                     return (
-                      <td
-                        key={cell.id}
-                        className={`overflow-hidden border-2 p-2 focus-within:border-blue-500 ${
-                          isRowNumberColumn ? "w-12" : "w-32"
-                        } ${isRowNumberColumn ? "" : "hover:bg-gray-100"} ${
-                          isCurrent && isMatch
-                            ? "bg-orange-400 hover:bg-orange-400"
-                            : ""
-                        } ${
-                          isMatch && !isCurrent
-                            ? "bg-yellow-200 hover:bg-yellow-200"
-                            : ""
-                        } ${isSorted ? "bg-blue-50" : ""} ${
-                          isFiltered ? "bg-yellow-50" : ""
-                        } `}
+                      <th
+                        key={header.id}
+                        className={`overflow-hidden border p-2 text-left ${
+                          isRowNumberColumn
+                            ? "sticky left-0 z-30 w-16 bg-white"
+                            : isNameColumn
+                              ? "sticky left-16 z-20 w-48"
+                              : "w-32"
+                        } ${isSorted ? "bg-blue-100" : ""} ${
+                          isFiltered ? "bg-yellow-100" : ""
+                        } ${isSorted && isFiltered ? "bg-green-100" : ""}`}
                       >
                         {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
+                          header.column.columnDef.header,
+                          header.getContext(),
                         )}
-                      </td>
+                      </th>
                     );
                   })}
-                  <td className="w-12 border p-2" />
+                  <th className="w-12 border-b p-2 text-left">
+                    <AddColumnPopover
+                      newColumnName={newColumnName}
+                      setNewColumnName={setNewColumnName}
+                      newColumnType={newColumnType}
+                      setNewColumnType={setNewColumnType}
+                      onSubmit={handleCreateColumn}
+                      isCreating={isCreatingColumn}
+                    />
+                  </th>
                 </tr>
-              );
-            })}
-            {paddingBottom > 0 && (
-              <tr>
-                <td style={{ height: `${paddingBottom}px` }} />
-              </tr>
-            )}
-            {isFetchingNextPage && (
-              <tr>
-                <td
-                  colSpan={columns.length + 1}
-                  className="border bg-gray-50 p-4 text-center"
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <Spinner size={16} />
-                    <span className="text-sm text-gray-600">
-                      Loading more rows...
-                    </span>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              ))}
+            </thead>
+            <tbody>
+              {paddingTop > 0 && (
+                <tr>
+                  <td style={{ height: `${paddingTop}px` }} />
+                </tr>
+              )}
+              {virtualRows.map((virtualRow) => {
+                const row = tableInstance.getRowModel().rows[virtualRow.index];
+                if (!row) return null;
+
+                return (
+                  <tr key={row.id} data-index={virtualRow.index}>
+                    {row.getVisibleCells().map((cell) => {
+                      const isRowNumberColumn = cell.column.id === "#";
+                      const isNameColumn = cell.column.id === "Name";
+                      const cellData: Cell = row.getValue(cell.column.id);
+                      const column = tableMetadata.columns.find(
+                        (c) => c.name === cell.column.id,
+                      );
+
+                      // Check if this column is sorted or filtered
+                      const isSorted =
+                        viewConditions?.sort &&
+                        Object.keys(viewConditions.sort).includes(
+                          column?.name ?? "",
+                        );
+                      const isFiltered =
+                        viewConditions?.filters &&
+                        Object.keys(viewConditions.filters).includes(
+                          column?.name ?? "",
+                        );
+
+                      // Find if this cell is a match
+                      const isMatch = matchingCells?.some(
+                        (mc) => mc.id === cellData.cellId,
+                      );
+                      // Find the index in matchPositions
+                      const matchIdx = matchPositions.findIndex(
+                        (mc) => mc.id === cellData.cellId,
+                      );
+
+                      const isCurrent =
+                        isMatch && matchIdx === currentMatchIndex;
+
+                      return (
+                        <td
+                          key={cell.id}
+                          className={`overflow-hidden border-2 p-2 focus-within:border-blue-500 ${
+                            isRowNumberColumn
+                              ? "sticky left-0 z-20 bg-white"
+                              : isNameColumn
+                                ? "sticky left-16 z-20"
+                                : "w-32"
+                          } ${isRowNumberColumn ? "" : "hover:bg-gray-100"} ${
+                            isCurrent && isMatch
+                              ? "bg-orange-400 hover:bg-orange-400"
+                              : ""
+                          } ${
+                            isMatch && !isCurrent
+                              ? "bg-yellow-200 hover:bg-yellow-200"
+                              : ""
+                          } ${isSorted ? "bg-blue-50" : ""} ${
+                            isFiltered ? "bg-yellow-50" : ""
+                          } `}
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="w-12 border p-2" />
+                  </tr>
+                );
+              })}
+              {paddingBottom > 0 && (
+                <tr>
+                  <td style={{ height: `${paddingBottom}px` }} />
+                </tr>
+              )}
+              {isFetchingNextPage && (
+                <tr>
+                  <td
+                    colSpan={columns.length + 1}
+                    className="border bg-gray-50 p-4 text-center"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <Spinner size={16} />
+                      <span className="text-sm text-gray-600">
+                        Loading more rows...
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Sticky Add Row Button */}
