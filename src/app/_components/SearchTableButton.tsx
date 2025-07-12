@@ -30,6 +30,13 @@ const SearchTableButton = ({
     setLocalSearchValue(searchValue ?? "");
   }, [searchValue]);
 
+  // If popover is closed, clear search value
+  useEffect(() => {
+    if (!isOpen) {
+      setLocalSearchValue("");
+    }
+  }, [isOpen]);
+
   const handleClearSearch = () => {
     setLocalSearchValue("");
     setIsOpen(false);
