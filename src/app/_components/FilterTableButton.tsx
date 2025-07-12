@@ -149,9 +149,9 @@ const FilterTableButton = ({
               value: input.filterValue,
             };
           }
-          onUpdate(newFilters);
         }
       });
+      onUpdate(newFilters);
     }, 400);
     return () => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);

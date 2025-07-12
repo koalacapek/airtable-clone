@@ -45,9 +45,14 @@ const OptionsTab = ({
     },
   });
 
-  const { data: viewDetails } = api.view.getDetails.useQuery({
-    id: activeView!,
-  });
+  const { data: viewDetails } = api.view.getDetails.useQuery(
+    {
+      id: activeView!,
+    },
+    {
+      enabled: !!activeView,
+    },
+  );
 
   // Create bulk rows mutation
   const { mutate: createBulkRows, isPending: isCreatingBulkRows } =
