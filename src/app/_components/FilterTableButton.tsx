@@ -60,11 +60,6 @@ const FilterTableButton = ({
         },
       );
       setFilterInputs(newFilterInputs);
-    } else {
-      // Reset to empty state when no filters
-      setFilterInputs([
-        { filterBy: undefined, filterOperator: "", filterValue: "" },
-      ]);
     }
   }, [filters]);
 
