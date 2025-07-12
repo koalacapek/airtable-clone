@@ -140,7 +140,6 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
         activeTab={activeTab}
         viewConditions={viewConditions}
         activeView={activeView}
-        searchValue={searchValue}
         onSearchChange={setSearchValue}
         matchingCells={matchingCells}
         currentMatchIndex={currentMatchIndex}

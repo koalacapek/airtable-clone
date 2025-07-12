@@ -306,12 +306,32 @@ const Table = ({
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   const isRowNumberColumn = header.column.id === "#";
+                  const column = tableMetadata.columns.find(
+                    (c) => c.name === header.column.id,
+                  );
+
+                  // Check if this column is sorted
+                  const isSorted =
+                    viewConditions?.sort &&
+                    Object.keys(viewConditions.sort).includes(
+                      column?.name ?? "",
+                    );
+
+                  // Check if this column is filtered
+                  const isFiltered =
+                    viewConditions?.filters &&
+                    Object.keys(viewConditions.filters).includes(
+                      column?.name ?? "",
+                    );
+
                   return (
                     <th
                       key={header.id}
                       className={`overflow-hidden border p-2 text-left ${
                         isRowNumberColumn ? "w-16" : "w-32"
-                      }`}
+                      } ${isSorted ? "bg-blue-100" : ""} ${
+                        isFiltered ? "bg-yellow-100" : ""
+                      } ${isSorted && isFiltered ? "bg-green-100" : ""}`}
                     >
                       {flexRender(
                         header.column.columnDef.header,
@@ -348,6 +368,21 @@ const Table = ({
                   {row.getVisibleCells().map((cell) => {
                     const isRowNumberColumn = cell.column.id === "#";
                     const cellData: Cell = row.getValue(cell.column.id);
+                    const column = tableMetadata.columns.find(
+                      (c) => c.name === cell.column.id,
+                    );
+
+                    // Check if this column is sorted or filtered
+                    const isSorted =
+                      viewConditions?.sort &&
+                      Object.keys(viewConditions.sort).includes(
+                        column?.name ?? "",
+                      );
+                    const isFiltered =
+                      viewConditions?.filters &&
+                      Object.keys(viewConditions.filters).includes(
+                        column?.name ?? "",
+                      );
 
                     // Find if this cell is a match
                     const isMatch = matchingCells?.some(
@@ -373,6 +408,8 @@ const Table = ({
                           isMatch && !isCurrent
                             ? "bg-yellow-200 hover:bg-yellow-200"
                             : ""
+                        } ${isSorted ? "bg-blue-50" : ""} ${
+                          isFiltered ? "bg-yellow-50" : ""
                         } `}
                       >
                         {flexRender(
