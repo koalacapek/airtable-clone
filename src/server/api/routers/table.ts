@@ -3,6 +3,7 @@ import { z } from "zod";
 import { faker } from "@faker-js/faker";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import type { Prisma } from "@prisma/client";
 
 export const tableRouter = createTRPCRouter({
   getAllByBase: protectedProcedure
@@ -199,159 +200,283 @@ export const tableRouter = createTRPCRouter({
         select: { id: true, name: true, type: true },
       });
 
-      let sql = `
-      SELECT r.id, r."tableId", r."createdAt"
-      FROM "Row" r
-    `;
-
-      const params: (string | number | null)[] = [];
-      let paramIndex = 1;
-
-      // Filter JOINs
-      if (filters && Object.keys(filters).length > 0) {
-        Object.entries(filters).forEach(([columnName, _], index) => {
-          const column = columns.find((col) => col.name === columnName);
-          if (!column) return;
-
-          const alias = `c${index}`;
-          sql += ` LEFT JOIN "Cell" ${alias} ON r.id = ${alias}."rowId" AND ${alias}."columnId" = $${paramIndex++}`;
-          params.push(column.id);
-        });
-      }
-
-      // Sort JOIN
-      let sortColumnId: string | undefined;
-      let sortColumnType: string | undefined;
+      // If we have sorting, use raw SQL for efficient global sorting
       if (sort && Object.keys(sort).length > 0) {
         const [columnName, sortConfig] = Object.entries(sort)[0] as [
           string,
           { direction: "asc" | "desc" },
         ];
-        const column = columns.find((col) => col.name === columnName);
-        if (column) {
-          sortColumnId = column.id;
-          sortColumnType = column.type;
-          sql += ` LEFT JOIN "Cell" sort_cell ON r.id = sort_cell."rowId" AND sort_cell."columnId" = $${paramIndex++}`;
-          params.push(column.id);
-          // Add sortValue to SELECT after the join is added
-          sql = sql.replace(
-            'SELECT r.id, r."tableId", r."createdAt"',
-            'SELECT r.id, r."tableId", r."createdAt", sort_cell.value AS "sortValue"',
-          );
-        }
-      }
+        const sortColumn = columns.find((col) => col.name === columnName);
 
-      // WHERE base
-      sql += ` WHERE r."tableId" = $${paramIndex++}`;
-      params.push(tableId);
+        if (sortColumn) {
+          // Build the SQL query for global sorting
+          let sql = `
+            SELECT r.id, r."tableId", c.value as sort_value
+            FROM "Row" r
+            LEFT JOIN "Cell" c ON r.id = c."rowId" AND c."columnId" = $1
+            WHERE r."tableId" = $2
+          `;
 
-      // Filter conditions
-      if (filters && Object.keys(filters).length > 0) {
-        Object.entries(filters).forEach(([columnName, filterConfig], index) => {
-          const column = columns.find((col) => col.name === columnName);
-          if (!column) return;
+          const params: (string | number | null)[] = [sortColumn.id, tableId];
+          let paramIndex = 3;
 
-          const alias = `c${index}`;
-          const { op, value } = filterConfig as { op: string; value?: string };
+          // Add cursor condition for pagination - this is the key fix
+          if (cursor) {
+            const sortDirection =
+              sortConfig.direction === "asc" ? "ASC" : "DESC";
 
-          if (op === "is_empty") {
-            sql += ` AND ${alias}.id IS NULL`;
-          } else if (op === "is_not_empty") {
-            sql += ` AND ${alias}.id IS NOT NULL`;
-          } else if (op === "contains") {
-            sql += ` AND ${alias}.value ILIKE $${paramIndex++}`;
-            params.push(`%${value}%`);
-          } else if (op === "not_contains") {
-            sql += ` AND (${alias}.id IS NULL OR ${alias}.value NOT ILIKE $${paramIndex++})`;
-            params.push(`%${value}%`);
-          } else if (op === "equal") {
-            sql += ` AND ${alias}.value = $${paramIndex++}`;
-            params.push(value ?? "");
-          } else if (op === "greater") {
-            sql += ` AND ${alias}.value > $${paramIndex++}`;
-            params.push(value ?? "");
-          } else if (op === "smaller") {
-            sql += ` AND ${alias}.value < $${paramIndex++}`;
-            params.push(value ?? "");
+            if (cursor.value !== null) {
+              if (sortColumn.type === "NUMBER") {
+                // For number columns: (sort_value, id) > (cursor_value, cursor_id)
+                if (sortDirection === "ASC") {
+                  sql += ` AND (
+                    CAST(COALESCE(c.value, '0') AS DECIMAL) > CAST($${paramIndex} AS DECIMAL) OR 
+                    (CAST(COALESCE(c.value, '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})
+                  )`;
+                } else {
+                  sql += ` AND (
+                    CAST(COALESCE(c.value, '0') AS DECIMAL) < CAST($${paramIndex} AS DECIMAL) OR 
+                    (CAST(COALESCE(c.value, '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})
+                  )`;
+                }
+                params.push(cursor.value, cursor.id);
+                paramIndex += 2;
+              } else {
+                // For text columns: (sort_value, id) > (cursor_value, cursor_id)
+                if (sortDirection === "ASC") {
+                  sql += ` AND (
+                    COALESCE(c.value, '') > $${paramIndex} OR 
+                    (COALESCE(c.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})
+                  )`;
+                } else {
+                  sql += ` AND (
+                    COALESCE(c.value, '') < $${paramIndex} OR 
+                    (COALESCE(c.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})
+                  )`;
+                }
+                params.push(cursor.value, cursor.id);
+                paramIndex += 2;
+              }
+            } else {
+              // If cursor.value is null, we need to handle null values properly
+              if (sortDirection === "ASC") {
+                // For ASC with null cursor, we want non-null values or null values with id > cursor.id
+                sql += ` AND (c.value IS NOT NULL OR r.id > $${paramIndex})`;
+              } else {
+                // For DESC with null cursor, we want values < null (which doesn't exist) or null values with id > cursor.id
+                sql += ` AND r.id > $${paramIndex}`;
+              }
+              params.push(cursor.id);
+              paramIndex += 1;
+            }
           }
-        });
-      }
 
-      // Cursor-based pagination
-      if (cursor && sortColumnId) {
-        if (sortColumnType === "NUMBER") {
-          // For number columns, compare as numbers
-          const cursorValue = cursor.value ? parseFloat(cursor.value) : 0;
-          const cursorIsNull = cursor.value === null || cursor.value === "";
-          sql += ` AND (CASE WHEN sort_cell.value IS NULL OR sort_cell.value = '' THEN 1 ELSE 0 END, COALESCE(CAST(sort_cell.value AS DECIMAL), 0), r.id) > ($${paramIndex++}, $${paramIndex++}, $${paramIndex++})`;
-          params.push(cursorIsNull ? 1 : 0, cursorValue, cursor.id);
-        } else {
-          // For text columns, compare as strings
-          const cursorIsNull = cursor.value === null || cursor.value === "";
-          sql += ` AND (CASE WHEN sort_cell.value IS NULL OR sort_cell.value = '' THEN 1 ELSE 0 END, COALESCE(LOWER(sort_cell.value), ''), r.id) > ($${paramIndex++}, $${paramIndex++}, $${paramIndex++})`;
-          params.push(cursorIsNull ? 1 : 0, cursor.value ?? "", cursor.id);
-        }
-      } else if (cursor) {
-        sql += ` AND r.id > $${paramIndex++}`;
-        params.push(cursor.id);
-      }
+          // Add sorting with consistent tie-breaking
+          const sortDirection = sortConfig.direction.toUpperCase();
+          if (sortColumn.type === "NUMBER") {
+            // For number columns, cast to numeric for proper numerical sorting
+            sql += ` ORDER BY CAST(COALESCE(c.value, '0') AS DECIMAL) ${sortDirection === "ASC" ? "ASC" : "DESC"}, r.id ASC`;
+          } else {
+            // For text columns, use string sorting
+            sql += ` ORDER BY COALESCE(c.value, '') ${sortDirection === "ASC" ? "ASC" : "DESC"}, r.id ASC`;
+          }
 
-      // ORDER BY
-      if (sortColumnId) {
-        const sortDirection =
-          (Object.values(sort!)[0] as { direction: "asc" | "desc" })
-            ?.direction ?? "asc";
+          // Add limit
+          sql += ` LIMIT $${paramIndex}`;
+          params.push(limit + 1); // Get one extra to check if there are more
 
-        if (sortColumnType === "NUMBER") {
-          // For number columns, cast to decimal for proper numeric sorting
-          // Handle NULL values by placing them at the end
-          sql += ` ORDER BY CASE WHEN sort_cell.value IS NULL OR sort_cell.value = '' THEN 1 ELSE 0 END, CAST(sort_cell.value AS DECIMAL) ${sortDirection.toUpperCase()}, r.id`;
-        } else {
-          // For text columns, use case-insensitive sorting
-          // Handle NULL values by placing them at the end
-          sql += ` ORDER BY CASE WHEN sort_cell.value IS NULL OR sort_cell.value = '' THEN 1 ELSE 0 END, LOWER(sort_cell.value) ${sortDirection.toUpperCase()}, r.id`;
-        }
-      } else {
-        sql += ` ORDER BY r.id`;
-      }
+          // Execute the query to get sorted row IDs
+          const sortedRows = (await ctx.db.$queryRawUnsafe(sql, ...params)) as {
+            id: string;
+            tableId: string;
+            sort_value: string | null;
+          }[];
 
-      // LIMIT
-      sql += ` LIMIT $${paramIndex++}`;
-      params.push(limit + 1);
+          // Check if there are more rows
+          const hasMore = sortedRows.length > limit;
+          const resultRowIds = sortedRows.slice(0, limit).map((r) => r.id);
 
-      // Run query
-      const result = await ctx.db.$queryRawUnsafe(sql, ...params);
-      const rows = result as {
-        id: string;
-        tableId: string;
-        createdAt: Date;
-        sortValue?: string | null;
-      }[];
+          if (resultRowIds.length === 0) {
+            return {
+              rows: [],
+              nextCursor: undefined,
+            };
+          }
 
-      const rowIds = rows.map((r) => r.id);
-      const rowsWithCells = await ctx.db.row.findMany({
-        where: { id: { in: rowIds } },
-        include: { cells: true },
-      });
+          // Now get full row data with all cells
+          const fullRows = await ctx.db.row.findMany({
+            where: {
+              id: { in: resultRowIds },
+            },
+            include: {
+              cells: {
+                include: {
+                  column: {
+                    select: { name: true, type: true },
+                  },
+                },
+              },
+            },
+          });
 
-      const sortedRows = rowIds.map(
-        (id) => rowsWithCells.find((r) => r.id === id)!,
-      );
+          // Maintain the sorted order
+          const orderedRows = resultRowIds.map(
+            (id) => fullRows.find((row) => row.id === id)!,
+          );
 
-      // Cursor for next page
-      let nextCursor: typeof input.cursor | undefined = undefined;
-      if (rows.length > limit) {
-        const nextItem = rows.pop();
-        if (nextItem) {
-          nextCursor = {
-            id: nextItem.id,
-            value: nextItem.sortValue ?? null,
+          // Apply filters if needed
+          let filteredRows = orderedRows;
+          if (filters && Object.keys(filters).length > 0) {
+            filteredRows = orderedRows.filter((row) => {
+              const cellData: Record<string, string | null> = {};
+              row.cells.forEach((cell) => {
+                cellData[cell.column.name] = cell.value;
+              });
+
+              return Object.entries(filters).every(
+                ([columnName, filterConfig]) => {
+                  const { op, value } = filterConfig as {
+                    op: string;
+                    value?: string;
+                  };
+                  const cellValue = cellData[columnName];
+
+                  switch (op) {
+                    case "is_empty":
+                      return !cellValue || cellValue === "";
+                    case "is_not_empty":
+                      return cellValue && cellValue !== "";
+                    case "contains":
+                      return cellValue
+                        ?.toLowerCase()
+                        .includes(value?.toLowerCase() ?? "");
+                    case "not_contains":
+                      return !cellValue
+                        ?.toLowerCase()
+                        .includes(value?.toLowerCase() ?? "");
+                    case "equal":
+                      return cellValue === value;
+                    case "greater":
+                      return (
+                        parseFloat(cellValue ?? "0") > parseFloat(value ?? "0")
+                      );
+                    case "smaller":
+                      return (
+                        parseFloat(cellValue ?? "0") < parseFloat(value ?? "0")
+                      );
+                    default:
+                      return true;
+                  }
+                },
+              );
+            });
+          }
+
+          // Determine next cursor using the last row from the ORIGINAL query result
+          let nextCursor: typeof input.cursor | undefined = undefined;
+          if (hasMore) {
+            const lastRowFromQuery = sortedRows[limit - 1]; // Use the last row before we sliced
+            nextCursor = {
+              id: lastRowFromQuery?.id ?? "",
+              value: lastRowFromQuery?.sort_value ?? null,
+            };
+          }
+
+          return {
+            rows: filteredRows,
+            nextCursor,
           };
         }
       }
 
+      // If no sorting, use the simpler approach
+      const rowWhereClause: Prisma.RowWhereInput = {
+        tableId,
+      };
+
+      // Handle cursor pagination
+      if (cursor) {
+        rowWhereClause.id = {
+          gt: cursor.id,
+        };
+      }
+
+      const rows = await ctx.db.row.findMany({
+        where: rowWhereClause,
+        include: {
+          cells: {
+            include: {
+              column: {
+                select: { name: true, type: true },
+              },
+            },
+          },
+        },
+        take: limit + 1,
+        orderBy: {
+          id: "asc",
+        },
+      });
+
+      // Apply filters if needed
+      let filteredRows = rows;
+      if (filters && Object.keys(filters).length > 0) {
+        filteredRows = rows.filter((row) => {
+          const cellData: Record<string, string | null> = {};
+          row.cells.forEach((cell) => {
+            cellData[cell.column.name] = cell.value;
+          });
+
+          return Object.entries(filters).every(([columnName, filterConfig]) => {
+            const { op, value } = filterConfig as {
+              op: string;
+              value?: string;
+            };
+            const cellValue = cellData[columnName];
+
+            switch (op) {
+              case "is_empty":
+                return !cellValue || cellValue === "";
+              case "is_not_empty":
+                return cellValue && cellValue !== "";
+              case "contains":
+                return cellValue
+                  ?.toLowerCase()
+                  .includes(value?.toLowerCase() ?? "");
+              case "not_contains":
+                return !cellValue
+                  ?.toLowerCase()
+                  .includes(value?.toLowerCase() ?? "");
+              case "equal":
+                return cellValue === value;
+              case "greater":
+                return parseFloat(cellValue ?? "0") > parseFloat(value ?? "0");
+              case "smaller":
+                return parseFloat(cellValue ?? "0") < parseFloat(value ?? "0");
+              default:
+                return true;
+            }
+          });
+        });
+      }
+
+      // Handle pagination
+      const hasMore = filteredRows.length > limit;
+      const resultRows = filteredRows.slice(0, limit);
+
+      // Determine next cursor
+      let nextCursor: typeof input.cursor | undefined = undefined;
+      if (hasMore && resultRows.length > 0) {
+        const lastRow = resultRows[resultRows.length - 1];
+
+        nextCursor = {
+          id: lastRow?.id ?? "",
+          value: null,
+        };
+      }
+
       return {
-        rows: sortedRows,
+        rows: resultRows,
         nextCursor,
       };
     }),
