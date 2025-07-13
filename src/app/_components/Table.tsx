@@ -308,6 +308,7 @@ const Table = ({
                   {headerGroup.headers.map((header) => {
                     const isRowNumberColumn = header.column.id === "#";
                     const isNameColumn = header.column.id === "Name";
+                    const isAgeColumn = header.column.id === "Age";
                     const column = tableMetadata.columns.find(
                       (c) => c.name === header.column.id,
                     );
@@ -334,8 +335,10 @@ const Table = ({
                             ? "sticky left-0 z-50 w-16 bg-white"
                             : isNameColumn
                               ? "sticky left-16 z-50 w-48"
-                              : "w-32"
-                        } ${isSorted ? "bg-blue-100" : ""} ${
+                              : isAgeColumn
+                                ? "sticky left-64 z-50 w-32"
+                                : "w-32"
+                        } ${isSorted ? "bg-blue-100" : "bg-white"} ${
                           isFiltered ? "bg-yellow-100" : ""
                         } ${isSorted && isFiltered ? "bg-green-100" : ""}`}
                       >
@@ -374,6 +377,7 @@ const Table = ({
                     {row.getVisibleCells().map((cell) => {
                       const isRowNumberColumn = cell.column.id === "#";
                       const isNameColumn = cell.column.id === "Name";
+                      const isAgeColumn = cell.column.id === "Age";
                       const cellData: Cell = row.getValue(cell.column.id);
                       const column = tableMetadata.columns.find(
                         (c) => c.name === cell.column.id,
@@ -408,10 +412,12 @@ const Table = ({
                           key={cell.id}
                           className={`overflow-hidden border-2 p-2 focus-within:border-blue-500 ${
                             isRowNumberColumn
-                              ? "sticky left-0 z-20 bg-white"
+                              ? "sticky left-0 z-20"
                               : isNameColumn
                                 ? "sticky left-16 z-20"
-                                : "w-32"
+                                : isAgeColumn
+                                  ? "sticky left-64 z-20"
+                                  : "w-32"
                           } ${isRowNumberColumn ? "" : "hover:bg-gray-100"} ${
                             isCurrent && isMatch
                               ? "bg-orange-400 hover:bg-orange-400"
