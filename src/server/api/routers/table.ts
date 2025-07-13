@@ -286,6 +286,7 @@ export const tableRouter = createTRPCRouter({
           params.push(limit + 1); // Get one extra to check if there are more
 
           // Execute the query to get sorted row IDs
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
           const sortedRows = (await ctx.db.$queryRawUnsafe(sql, ...params)) as {
             id: string;
             tableId: string;
