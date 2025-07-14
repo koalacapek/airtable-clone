@@ -96,7 +96,7 @@ export const tableRouter = createTRPCRouter({
       }
 
       // Create rows and cells
-      const rowData = Array.from({ length: 200 }).map(() => ({
+      const rowData = Array.from({ length: 20 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
@@ -220,7 +220,135 @@ export const tableRouter = createTRPCRouter({
           const params: (string | number | null)[] = [sortColumn.id, tableId];
           let paramIndex = 3;
 
-          // Add cursor condition for pagination - this is the key fix
+          // Add filter conditions to the SQL query
+          if (filters && Object.keys(filters).length > 0) {
+            const filterConditions: string[] = [];
+
+            for (const [filterColumnName, filterConfig] of Object.entries(
+              filters,
+            )) {
+              const { op, value } = filterConfig as {
+                op: string;
+                value?: string;
+              };
+
+              const filterColumn = columns.find(
+                (col) => col.name === filterColumnName,
+              );
+              if (!filterColumn) continue;
+
+              let condition = "";
+
+              switch (op) {
+                case "is_empty":
+                  condition = `NOT EXISTS (
+                    SELECT 1 FROM "Cell" fc 
+                    WHERE fc."rowId" = r.id 
+                    AND fc."columnId" = $${paramIndex} 
+                    AND fc.value IS NOT NULL 
+                    AND fc.value != ''
+                  )`;
+                  params.push(filterColumn.id);
+                  paramIndex++;
+                  break;
+
+                case "is_not_empty":
+                  condition = `EXISTS (
+                    SELECT 1 FROM "Cell" fc 
+                    WHERE fc."rowId" = r.id 
+                    AND fc."columnId" = $${paramIndex} 
+                    AND fc.value IS NOT NULL 
+                    AND fc.value != ''
+                  )`;
+                  params.push(filterColumn.id);
+                  paramIndex++;
+                  break;
+
+                case "contains":
+                  condition = `EXISTS (
+                    SELECT 1 FROM "Cell" fc 
+                    WHERE fc."rowId" = r.id 
+                    AND fc."columnId" = $${paramIndex} 
+                    AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
+                  )`;
+                  params.push(filterColumn.id, `%${value}%`);
+                  paramIndex += 2;
+                  break;
+
+                case "not_contains":
+                  condition = `NOT EXISTS (
+                    SELECT 1 FROM "Cell" fc 
+                    WHERE fc."rowId" = r.id 
+                    AND fc."columnId" = $${paramIndex} 
+                    AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
+                  )`;
+                  params.push(filterColumn.id, `%${value}%`);
+                  paramIndex += 2;
+                  break;
+
+                case "equal":
+                  condition = `EXISTS (
+                    SELECT 1 FROM "Cell" fc 
+                    WHERE fc."rowId" = r.id 
+                    AND fc."columnId" = $${paramIndex} 
+                    AND COALESCE(fc.value, '') = $${paramIndex + 1}
+                  )`;
+                  params.push(filterColumn.id, value ?? "");
+                  paramIndex += 2;
+                  break;
+
+                case "greater":
+                  if (filterColumn.type === "NUMBER") {
+                    condition = `EXISTS (
+                      SELECT 1 FROM "Cell" fc 
+                      WHERE fc."rowId" = r.id 
+                      AND fc."columnId" = $${paramIndex} 
+                      AND CAST(COALESCE(fc.value, '0') AS DECIMAL) > CAST($${paramIndex + 1} AS DECIMAL)
+                    )`;
+                  } else {
+                    condition = `EXISTS (
+                      SELECT 1 FROM "Cell" fc 
+                      WHERE fc."rowId" = r.id 
+                      AND fc."columnId" = $${paramIndex} 
+                      AND COALESCE(fc.value, '') > $${paramIndex + 1}
+                    )`;
+                  }
+                  params.push(filterColumn.id, value ?? "0");
+                  paramIndex += 2;
+                  break;
+
+                case "smaller":
+                  if (filterColumn.type === "NUMBER") {
+                    condition = `EXISTS (
+                      SELECT 1 FROM "Cell" fc 
+                      WHERE fc."rowId" = r.id 
+                      AND fc."columnId" = $${paramIndex} 
+                      AND CAST(COALESCE(fc.value, '0') AS DECIMAL) < CAST($${paramIndex + 1} AS DECIMAL)
+                    )`;
+                  } else {
+                    condition = `EXISTS (
+                      SELECT 1 FROM "Cell" fc 
+                      WHERE fc."rowId" = r.id 
+                      AND fc."columnId" = $${paramIndex} 
+                      AND COALESCE(fc.value, '') < $${paramIndex + 1}
+                    )`;
+                  }
+                  params.push(filterColumn.id, value ?? "0");
+                  paramIndex += 2;
+                  break;
+              }
+
+              if (condition) {
+                filterConditions.push(condition);
+              }
+            }
+
+            if (filterConditions.length > 0) {
+              sql += ` AND (${filterConditions.join(" AND ")})`;
+            }
+          }
+
+          // Add cursor condition for pagination
           if (cursor) {
             const sortDirection =
               sortConfig.direction === "asc" ? "ASC" : "DESC";
@@ -325,54 +453,6 @@ export const tableRouter = createTRPCRouter({
             (id) => fullRows.find((row) => row.id === id)!,
           );
 
-          // Apply filters if needed
-          let filteredRows = orderedRows;
-          if (filters && Object.keys(filters).length > 0) {
-            filteredRows = orderedRows.filter((row) => {
-              const cellData: Record<string, string | null> = {};
-              row.cells.forEach((cell) => {
-                cellData[cell.column.name] = cell.value;
-              });
-
-              return Object.entries(filters).every(
-                ([columnName, filterConfig]) => {
-                  const { op, value } = filterConfig as {
-                    op: string;
-                    value?: string;
-                  };
-                  const cellValue = cellData[columnName];
-
-                  switch (op) {
-                    case "is_empty":
-                      return !cellValue || cellValue === "";
-                    case "is_not_empty":
-                      return cellValue && cellValue !== "";
-                    case "contains":
-                      return cellValue
-                        ?.toLowerCase()
-                        .includes(value?.toLowerCase() ?? "");
-                    case "not_contains":
-                      return !cellValue
-                        ?.toLowerCase()
-                        .includes(value?.toLowerCase() ?? "");
-                    case "equal":
-                      return cellValue === value;
-                    case "greater":
-                      return (
-                        parseFloat(cellValue ?? "0") > parseFloat(value ?? "0")
-                      );
-                    case "smaller":
-                      return (
-                        parseFloat(cellValue ?? "0") < parseFloat(value ?? "0")
-                      );
-                    default:
-                      return true;
-                  }
-                },
-              );
-            });
-          }
-
           // Determine next cursor using the last row from the ORIGINAL query result
           let nextCursor: typeof input.cursor | undefined = undefined;
           if (hasMore) {
@@ -384,13 +464,13 @@ export const tableRouter = createTRPCRouter({
           }
 
           return {
-            rows: filteredRows,
+            rows: orderedRows,
             nextCursor,
           };
         }
       }
 
-      // If no sorting, use the simpler approach
+      // If no sorting, use the simpler approach with proper filtering
       const rowWhereClause: Prisma.RowWhereInput = {
         tableId,
       };
@@ -402,6 +482,218 @@ export const tableRouter = createTRPCRouter({
         };
       }
 
+      // For the non-sorted case, we need to use a different approach if we have filters
+      // because Prisma doesn't handle the complex cell filtering well
+      if (filters && Object.keys(filters).length > 0) {
+        // Use raw SQL for filtering even in the non-sorted case
+        let sql = `
+          SELECT DISTINCT r.id, r."tableId"
+          FROM "Row" r
+          WHERE r."tableId" = $1
+        `;
+
+        const params: (string | number | null)[] = [tableId];
+        let paramIndex = 2;
+
+        // Add cursor condition
+        if (cursor) {
+          sql += ` AND r.id > $${paramIndex}`;
+          params.push(cursor.id);
+          paramIndex++;
+        }
+
+        // Add filter conditions
+        const filterConditions: string[] = [];
+
+        for (const [filterColumnName, filterConfig] of Object.entries(
+          filters,
+        )) {
+          const { op, value } = filterConfig as {
+            op: string;
+            value?: string;
+          };
+
+          const filterColumn = columns.find(
+            (col) => col.name === filterColumnName,
+          );
+          if (!filterColumn) continue;
+
+          let condition = "";
+
+          switch (op) {
+            case "is_empty":
+              condition = `NOT EXISTS (
+                SELECT 1 FROM "Cell" fc 
+                WHERE fc."rowId" = r.id 
+                AND fc."columnId" = $${paramIndex} 
+                AND fc.value IS NOT NULL 
+                AND fc.value != ''
+              )`;
+              params.push(filterColumn.id);
+              paramIndex++;
+              break;
+
+            case "is_not_empty":
+              condition = `EXISTS (
+                SELECT 1 FROM "Cell" fc 
+                WHERE fc."rowId" = r.id 
+                AND fc."columnId" = $${paramIndex} 
+                AND fc.value IS NOT NULL 
+                AND fc.value != ''
+              )`;
+              params.push(filterColumn.id);
+              paramIndex++;
+              break;
+
+            case "contains":
+              condition = `EXISTS (
+                SELECT 1 FROM "Cell" fc 
+                WHERE fc."rowId" = r.id 
+                AND fc."columnId" = $${paramIndex} 
+                AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
+              )`;
+              params.push(filterColumn.id, `%${value}%`);
+              paramIndex += 2;
+              break;
+
+            case "not_contains":
+              condition = `NOT EXISTS (
+                SELECT 1 FROM "Cell" fc 
+                WHERE fc."rowId" = r.id 
+                AND fc."columnId" = $${paramIndex} 
+                AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
+              )`;
+              params.push(filterColumn.id, `%${value}%`);
+              paramIndex += 2;
+              break;
+
+            case "equal":
+              condition = `EXISTS (
+                SELECT 1 FROM "Cell" fc 
+                WHERE fc."rowId" = r.id 
+                AND fc."columnId" = $${paramIndex} 
+                AND COALESCE(fc.value, '') = $${paramIndex + 1}
+              )`;
+              params.push(filterColumn.id, value ?? "");
+              paramIndex += 2;
+              break;
+
+            case "greater":
+              const filterCol = columns.find(
+                (col) => col.name === filterColumnName,
+              );
+              if (filterCol?.type === "NUMBER") {
+                condition = `EXISTS (
+                  SELECT 1 FROM "Cell" fc 
+                  WHERE fc."rowId" = r.id 
+                  AND fc."columnId" = $${paramIndex} 
+                  AND CAST(COALESCE(fc.value, '0') AS DECIMAL) > CAST($${paramIndex + 1} AS DECIMAL)
+                )`;
+              } else {
+                condition = `EXISTS (
+                  SELECT 1 FROM "Cell" fc 
+                  WHERE fc."rowId" = r.id 
+                  AND fc."columnId" = $${paramIndex} 
+                  AND COALESCE(fc.value, '') > $${paramIndex + 1}
+                )`;
+              }
+              params.push(filterColumn.id, value ?? "0");
+              paramIndex += 2;
+              break;
+
+            case "smaller":
+              const filterCol2 = columns.find(
+                (col) => col.name === filterColumnName,
+              );
+              if (filterCol2?.type === "NUMBER") {
+                condition = `EXISTS (
+                  SELECT 1 FROM "Cell" fc 
+                  WHERE fc."rowId" = r.id 
+                  AND fc."columnId" = $${paramIndex} 
+                  AND CAST(COALESCE(fc.value, '0') AS DECIMAL) < CAST($${paramIndex + 1} AS DECIMAL)
+                )`;
+              } else {
+                condition = `EXISTS (
+                  SELECT 1 FROM "Cell" fc 
+                  WHERE fc."rowId" = r.id 
+                  AND fc."columnId" = $${paramIndex} 
+                  AND COALESCE(fc.value, '') < $${paramIndex + 1}
+                )`;
+              }
+              params.push(filterColumn.id, value ?? "0");
+              paramIndex += 2;
+              break;
+          }
+
+          if (condition) {
+            filterConditions.push(condition);
+          }
+        }
+
+        if (filterConditions.length > 0) {
+          sql += ` AND (${filterConditions.join(" AND ")})`;
+        }
+
+        sql += ` ORDER BY r.id ASC LIMIT $${paramIndex}`;
+        params.push(limit + 1);
+
+        // Execute the query to get filtered row IDs
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const filteredRowIds = (await ctx.db.$queryRawUnsafe(
+          sql,
+          ...params,
+        )) as {
+          id: string;
+          tableId: string;
+        }[];
+
+        // Check if there are more rows
+        const hasMore = filteredRowIds.length > limit;
+        const resultRowIds = filteredRowIds.slice(0, limit);
+
+        if (resultRowIds.length === 0) {
+          return {
+            rows: [],
+            nextCursor: undefined,
+          };
+        }
+
+        // Get full row data
+        const fullRows = await ctx.db.row.findMany({
+          where: {
+            id: { in: resultRowIds.map((r) => r.id) },
+          },
+          include: {
+            cells: {
+              include: {
+                column: {
+                  select: { name: true, type: true },
+                },
+              },
+            },
+          },
+          orderBy: {
+            id: "asc",
+          },
+        });
+
+        // Determine next cursor
+        let nextCursor: typeof input.cursor | undefined = undefined;
+        if (hasMore && fullRows.length > 0) {
+          const lastRow = fullRows[fullRows.length - 1];
+          nextCursor = {
+            id: lastRow?.id ?? "",
+            value: null,
+          };
+        }
+
+        return {
+          rows: fullRows,
+          nextCursor,
+        };
+      }
+
+      // Original simple case (no filters, no sorting)
       const rows = await ctx.db.row.findMany({
         where: rowWhereClause,
         include: {
@@ -419,57 +711,14 @@ export const tableRouter = createTRPCRouter({
         },
       });
 
-      // Apply filters if needed
-      let filteredRows = rows;
-      if (filters && Object.keys(filters).length > 0) {
-        filteredRows = rows.filter((row) => {
-          const cellData: Record<string, string | null> = {};
-          row.cells.forEach((cell) => {
-            cellData[cell.column.name] = cell.value;
-          });
-
-          return Object.entries(filters).every(([columnName, filterConfig]) => {
-            const { op, value } = filterConfig as {
-              op: string;
-              value?: string;
-            };
-            const cellValue = cellData[columnName];
-
-            switch (op) {
-              case "is_empty":
-                return !cellValue || cellValue === "";
-              case "is_not_empty":
-                return cellValue && cellValue !== "";
-              case "contains":
-                return cellValue
-                  ?.toLowerCase()
-                  .includes(value?.toLowerCase() ?? "");
-              case "not_contains":
-                return !cellValue
-                  ?.toLowerCase()
-                  .includes(value?.toLowerCase() ?? "");
-              case "equal":
-                return cellValue === value;
-              case "greater":
-                return parseFloat(cellValue ?? "0") > parseFloat(value ?? "0");
-              case "smaller":
-                return parseFloat(cellValue ?? "0") < parseFloat(value ?? "0");
-              default:
-                return true;
-            }
-          });
-        });
-      }
-
       // Handle pagination
-      const hasMore = filteredRows.length > limit;
-      const resultRows = filteredRows.slice(0, limit);
+      const hasMore = rows.length > limit;
+      const resultRows = rows.slice(0, limit);
 
       // Determine next cursor
       let nextCursor: typeof input.cursor | undefined = undefined;
       if (hasMore && resultRows.length > 0) {
         const lastRow = resultRows[resultRows.length - 1];
-
         nextCursor = {
           id: lastRow?.id ?? "",
           value: null,
