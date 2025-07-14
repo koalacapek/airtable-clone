@@ -227,24 +227,25 @@ export const tableRouter = createTRPCRouter({
             for (const [filterColumnName, filterConfig] of Object.entries(
               filters,
             )) {
-              const { op, value } = filterConfig as {
-                op: string;
-                value?: string;
-              };
+              const filterConfigsArray = Array.isArray(filterConfig)
+                ? (filterConfig as { op: string; value?: string }[])
+                : [filterConfig as { op: string; value?: string }];
 
               const filterColumn = columns.find(
                 (col) => col.name === filterColumnName,
               );
               if (!filterColumn) continue;
 
-              const { condition, newParamIndex, moreParams } =
-                handleChooseFilterQuery(op, value!, filterColumn, paramIndex);
+              for (const { op, value } of filterConfigsArray) {
+                const { condition, newParamIndex, moreParams } =
+                  handleChooseFilterQuery(op, value!, filterColumn, paramIndex);
 
-              params.push(...moreParams);
-              paramIndex = newParamIndex;
+                params.push(...moreParams);
+                paramIndex = newParamIndex;
 
-              if (condition) {
-                filterConditions.push(condition);
+                if (condition) {
+                  filterConditions.push(condition);
+                }
               }
             }
 
@@ -412,24 +413,25 @@ export const tableRouter = createTRPCRouter({
         for (const [filterColumnName, filterConfig] of Object.entries(
           filters,
         )) {
-          const { op, value } = filterConfig as {
-            op: string;
-            value?: string;
-          };
+          const filterConfigsArray = Array.isArray(filterConfig)
+            ? (filterConfig as { op: string; value?: string }[])
+            : [filterConfig as { op: string; value?: string }];
 
           const filterColumn = columns.find(
             (col) => col.name === filterColumnName,
           );
           if (!filterColumn) continue;
 
-          const { condition, newParamIndex, moreParams } =
-            handleChooseFilterQuery(op, value!, filterColumn, paramIndex);
+          for (const { op, value } of filterConfigsArray) {
+            const { condition, newParamIndex, moreParams } =
+              handleChooseFilterQuery(op, value!, filterColumn, paramIndex);
 
-          params.push(...moreParams);
-          paramIndex = newParamIndex;
+            params.push(...moreParams);
+            paramIndex = newParamIndex;
 
-          if (condition) {
-            filterConditions.push(condition);
+            if (condition) {
+              filterConditions.push(condition);
+            }
           }
         }
 
@@ -586,28 +588,32 @@ export const tableRouter = createTRPCRouter({
           if (!column) return;
 
           const alias = `c${index}`;
-          const { op, value } = filterConfig as { op: string; value?: string };
+          const filterConfigsArray = Array.isArray(filterConfig)
+            ? (filterConfig as { op: string; value?: string }[])
+            : [filterConfig as { op: string; value?: string }];
 
-          if (op === "is_empty") {
-            sql += ` AND ${alias}.id IS NULL`;
-          } else if (op === "is_not_empty") {
-            sql += ` AND ${alias}.id IS NOT NULL`;
-          } else if (op === "contains") {
-            sql += ` AND ${alias}.value ILIKE $${paramIndex++}`;
-            params.push(`%${value}%`);
-          } else if (op === "not_contains") {
-            sql += ` AND (${alias}.id IS NULL OR ${alias}.value NOT ILIKE $${paramIndex++})`;
-            params.push(`%${value}%`);
-          } else if (op === "equal") {
-            sql += ` AND ${alias}.value = $${paramIndex++}`;
-            params.push(value ?? "");
-          } else if (op === "greater") {
-            sql += ` AND ${alias}.value > $${paramIndex++}`;
-            params.push(value ?? "");
-          } else if (op === "smaller") {
-            sql += ` AND ${alias}.value < $${paramIndex++}`;
-            params.push(value ?? "");
-          }
+          filterConfigsArray.forEach(({ op, value }) => {
+            if (op === "is_empty") {
+              sql += ` AND ${alias}.id IS NULL`;
+            } else if (op === "is_not_empty") {
+              sql += ` AND ${alias}.id IS NOT NULL`;
+            } else if (op === "contains") {
+              sql += ` AND ${alias}.value ILIKE $${paramIndex++}`;
+              params.push(`%${value}%`);
+            } else if (op === "not_contains") {
+              sql += ` AND (${alias}.id IS NULL OR ${alias}.value NOT ILIKE $${paramIndex++})`;
+              params.push(`%${value}%`);
+            } else if (op === "equal") {
+              sql += ` AND ${alias}.value = $${paramIndex++}`;
+              params.push(value ?? "");
+            } else if (op === "greater") {
+              sql += ` AND ${alias}.value > $${paramIndex++}`;
+              params.push(value ?? "");
+            } else if (op === "smaller") {
+              sql += ` AND ${alias}.value < $${paramIndex++}`;
+              params.push(value ?? "");
+            }
+          });
         });
 
         // Run the filter query to get matching row IDs

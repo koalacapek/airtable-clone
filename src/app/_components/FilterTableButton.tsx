@@ -53,16 +53,24 @@ const FilterTableButton = ({
   // Update filterInputs when filters prop changes (e.g., when switching views)
   useEffect(() => {
     if (filters && Object.keys(filters).length > 0) {
-      const newFilterInputs = Object.entries(filters).map(
-        ([columnName, config]) => {
-          const filterConfig = config as { op: string; value?: string };
-          return {
+      const newFilterInputs: {
+        filterBy?: string;
+        filterOperator?: string;
+        filterValue?: string;
+      }[] = [];
+
+      Object.entries(filters).forEach(([columnName, config]) => {
+        // Each column can now store an array of filter configs
+        const filterConfigs = Array.isArray(config) ? config : [config];
+        filterConfigs.forEach((fc) => {
+          const filterConfig = fc as { op: string; value?: string };
+          newFilterInputs.push({
             filterBy: columnName,
             filterOperator: filterConfig.op,
             filterValue: filterConfig.value ?? "",
-          };
-        },
-      );
+          });
+        });
+      });
       setFilterInputs(newFilterInputs);
     } else {
       // Reset to empty state when no filters
@@ -119,14 +127,18 @@ const FilterTableButton = ({
   // Remove a filter input set
   const handleRemoveFilterInput = (index: number) => {
     const newInputs = [...filterInputs];
-    const removed = newInputs.splice(index, 1);
-    setFilterInputs(newInputs);
-    // Remove from filters and call onUpdate
-    if (removed[0]?.filterBy) {
-      const newFilters = { ...filters };
-      delete newFilters[removed[0].filterBy];
-      onUpdate(newFilters);
+    newInputs.splice(index, 1);
+    // If no filters remain, provide a blank input row so the UI isn't empty
+    if (newInputs.length === 0) {
+      newInputs.push({
+        filterBy: undefined,
+        filterOperator: "",
+        filterValue: "",
+      });
+      // Immediately clear all filters in parent state
+      onUpdate({});
     }
+    setFilterInputs(newInputs);
   };
 
   // Debounce update for all filters
@@ -135,7 +147,7 @@ const FilterTableButton = ({
     if (!filterInputs.length) return;
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     debounceTimeout.current = setTimeout(() => {
-      const newFilters: Record<string, { op: string; value?: string }> = {};
+      const newFilters: Record<string, { op: string; value?: string }[]> = {};
       filterInputs.forEach((input) => {
         if (!input.filterBy || !input.filterOperator) return;
         if (
@@ -143,20 +155,27 @@ const FilterTableButton = ({
           input.filterOperator === "is_not_empty" ||
           input.filterValue // only apply if value is not empty for value-based ops
         ) {
+          let filterObj: { op: string; value?: string };
           if (input.filterOperator === "is_empty") {
-            newFilters[input.filterBy] = { op: "is_empty" };
+            filterObj = { op: "is_empty" };
           } else if (input.filterOperator === "is_not_empty") {
-            newFilters[input.filterBy] = { op: "is_not_empty" };
+            filterObj = { op: "is_not_empty" };
           } else {
-            newFilters[input.filterBy] = {
+            filterObj = {
               op: input.filterOperator,
               value: input.filterValue,
             };
           }
+
+          if (newFilters[input.filterBy ?? ""]) {
+            newFilters[input.filterBy ?? ""]?.push(filterObj);
+          } else {
+            newFilters[input.filterBy ?? ""] = [filterObj];
+          }
         }
       });
-      console.log(newFilters);
       onUpdate(newFilters);
+      console.log(newFilters);
     }, 400);
     return () => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
@@ -166,22 +185,32 @@ const FilterTableButton = ({
   return (
     <Popover>
       <PopoverTrigger>
-        <div
-          className={`flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer ${
-            Object.keys(filters ?? {}).length > 0
-              ? "bg-green-200/80"
-              : "hover:bg-gray-200/80"
-          }`}
-        >
-          <Filter strokeWidth={1.5} size={16} />
-          <p className="text-xs">
-            {Object.keys(filters ?? {}).length > 0
-              ? `Filtered by ${Object.keys(filters ?? {}).length} ${
-                  Object.keys(filters ?? {}).length === 1 ? "field" : "fields"
-                }`
-              : "Filter"}
-          </p>
-        </div>
+        {(() => {
+          const activeCount = filterInputs.filter(
+            (f) =>
+              f.filterBy &&
+              f.filterOperator &&
+              (f.filterOperator === "is_empty" ||
+                f.filterOperator === "is_not_empty" ||
+                f.filterValue),
+          ).length;
+          return (
+            <div
+              className={`flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer ${
+                activeCount > 0 ? "bg-green-200/80" : "hover:bg-gray-200/80"
+              }`}
+            >
+              <Filter strokeWidth={1.5} size={16} />
+              <p className="text-xs">
+                {activeCount > 0
+                  ? `Filtered by ${activeCount} ${
+                      activeCount === 1 ? "field" : "fields"
+                    }`
+                  : "Filter"}
+              </p>
+            </div>
+          );
+        })()}
       </PopoverTrigger>
       <PopoverContent className="w-90 space-y-4">
         {/* Render all filter input sets */}
