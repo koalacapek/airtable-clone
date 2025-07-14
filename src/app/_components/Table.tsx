@@ -332,7 +332,7 @@ const Table = ({
                         key={header.id}
                         className={`overflow-hidden border p-2 text-left ${
                           isRowNumberColumn
-                            ? "sticky left-0 z-50 w-16 bg-white"
+                            ? "sticky left-0 z-50 w-16"
                             : isNameColumn
                               ? "sticky left-16 z-50 w-48"
                               : isAgeColumn
@@ -410,7 +410,7 @@ const Table = ({
                       return (
                         <td
                           key={cell.id}
-                          className={`overflow-hidden border-2 p-2 focus-within:border-blue-500 ${
+                          className={`overflow-hidden border p-2 focus-within:border-blue-500 ${
                             isRowNumberColumn
                               ? "sticky left-0 z-20"
                               : isNameColumn
@@ -418,17 +418,17 @@ const Table = ({
                                 : isAgeColumn
                                   ? "sticky left-64 z-20"
                                   : "w-32"
-                          } ${isRowNumberColumn ? "" : "hover:bg-gray-100"} ${
+                          } ${
                             isCurrent && isMatch
                               ? "bg-orange-400 hover:bg-orange-400"
-                              : ""
-                          } ${
-                            isMatch && !isCurrent
-                              ? "bg-yellow-200 hover:bg-yellow-200"
-                              : ""
-                          } ${isSorted ? "bg-blue-50" : ""} ${
-                            isFiltered ? "bg-green-50" : ""
-                          } `}
+                              : isMatch && !isCurrent
+                                ? "bg-yellow-200 hover:bg-yellow-200"
+                                : isSorted
+                                  ? "bg-blue-50"
+                                  : isFiltered
+                                    ? "bg-green-50"
+                                    : "bg-white"
+                          } ${isRowNumberColumn ? "" : "hover:bg-gray-100"}`}
                         >
                           {flexRender(
                             cell.column.columnDef.cell,
@@ -437,7 +437,7 @@ const Table = ({
                         </td>
                       );
                     })}
-                    <td className="w-12 border p-2" />
+                    {/* <td className="w-12 border p-2" /> */}
                   </tr>
                 );
               })}

@@ -95,10 +95,10 @@ export const rowRouter = createTRPCRouter({
 
             if (col.name === "#") {
               value = (globalRowIndex + 1).toString();
-            } else if (col.type === "TEXT") {
+            } else if (col.name === "Name") {
               // Generate fake data on-demand to reduce memory usage
               value = faker.person.fullName();
-            } else if (col.type === "NUMBER") {
+            } else if (col.name === "Age") {
               value = faker.number.int({ min: 1, max: 1000 }).toString();
             }
 
