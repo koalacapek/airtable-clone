@@ -4,6 +4,7 @@ import { faker } from "@faker-js/faker";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import type { Prisma } from "@prisma/client";
+import { handleChooseFilterQuery } from "~/server/utils/table";
 
 export const tableRouter = createTRPCRouter({
   getAllByBase: protectedProcedure
@@ -197,7 +198,6 @@ export const tableRouter = createTRPCRouter({
 
       const columns = await ctx.db.column.findMany({
         where: { tableId },
-        select: { id: true, name: true, type: true },
       });
 
       // If we have sorting, use raw SQL for efficient global sorting
@@ -237,106 +237,110 @@ export const tableRouter = createTRPCRouter({
               );
               if (!filterColumn) continue;
 
-              let condition = "";
+              const { condition, newParamIndex, moreParams } =
+                handleChooseFilterQuery(op, value!, filterColumn, paramIndex);
 
-              switch (op) {
-                case "is_empty":
-                  condition = `NOT EXISTS (
-                    SELECT 1 FROM "Cell" fc 
-                    WHERE fc."rowId" = r.id 
-                    AND fc."columnId" = $${paramIndex} 
-                    AND fc.value IS NOT NULL 
-                    AND fc.value != ''
-                  )`;
-                  params.push(filterColumn.id);
-                  paramIndex++;
-                  break;
+              params.push(...moreParams);
+              paramIndex = newParamIndex;
 
-                case "is_not_empty":
-                  condition = `EXISTS (
-                    SELECT 1 FROM "Cell" fc 
-                    WHERE fc."rowId" = r.id 
-                    AND fc."columnId" = $${paramIndex} 
-                    AND fc.value IS NOT NULL 
-                    AND fc.value != ''
-                  )`;
-                  params.push(filterColumn.id);
-                  paramIndex++;
-                  break;
+              // switch (op) {
+              //   case "is_empty":
+              //     condition = `NOT EXISTS (
+              //       SELECT 1 FROM "Cell" fc
+              //       WHERE fc."rowId" = r.id
+              //       AND fc."columnId" = $${paramIndex}
+              //       AND fc.value IS NOT NULL
+              //       AND fc.value != ''
+              //     )`;
+              //     params.push(filterColumn.id);
+              //     paramIndex++;
+              //     break;
 
-                case "contains":
-                  condition = `EXISTS (
-                    SELECT 1 FROM "Cell" fc 
-                    WHERE fc."rowId" = r.id 
-                    AND fc."columnId" = $${paramIndex} 
-                    AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
-                  )`;
-                  params.push(filterColumn.id, `%${value}%`);
-                  paramIndex += 2;
-                  break;
+              //   case "is_not_empty":
+              //     condition = `EXISTS (
+              //       SELECT 1 FROM "Cell" fc
+              //       WHERE fc."rowId" = r.id
+              //       AND fc."columnId" = $${paramIndex}
+              //       AND fc.value IS NOT NULL
+              //       AND fc.value != ''
+              //     )`;
+              //     params.push(filterColumn.id);
+              //     paramIndex++;
+              //     break;
 
-                case "not_contains":
-                  condition = `NOT EXISTS (
-                    SELECT 1 FROM "Cell" fc 
-                    WHERE fc."rowId" = r.id 
-                    AND fc."columnId" = $${paramIndex} 
-                    AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
-                  )`;
-                  params.push(filterColumn.id, `%${value}%`);
-                  paramIndex += 2;
-                  break;
+              //   case "contains":
+              //     condition = `EXISTS (
+              //       SELECT 1 FROM "Cell" fc
+              //       WHERE fc."rowId" = r.id
+              //       AND fc."columnId" = $${paramIndex}
+              //       AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
+              //     )`;
+              //     params.push(filterColumn.id, `%${value}%`);
+              //     paramIndex += 2;
+              //     break;
 
-                case "equal":
-                  condition = `EXISTS (
-                    SELECT 1 FROM "Cell" fc 
-                    WHERE fc."rowId" = r.id 
-                    AND fc."columnId" = $${paramIndex} 
-                    AND COALESCE(fc.value, '') = $${paramIndex + 1}
-                  )`;
-                  params.push(filterColumn.id, value ?? "");
-                  paramIndex += 2;
-                  break;
+              //   case "not_contains":
+              //     condition = `NOT EXISTS (
+              //       SELECT 1 FROM "Cell" fc
+              //       WHERE fc."rowId" = r.id
+              //       AND fc."columnId" = $${paramIndex}
+              //       AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
+              //     )`;
+              //     params.push(filterColumn.id, `%${value}%`);
+              //     paramIndex += 2;
+              //     break;
 
-                case "greater":
-                  if (filterColumn.type === "NUMBER") {
-                    condition = `EXISTS (
-                      SELECT 1 FROM "Cell" fc 
-                      WHERE fc."rowId" = r.id 
-                      AND fc."columnId" = $${paramIndex} 
-                      AND CAST(COALESCE(fc.value, '0') AS DECIMAL) > CAST($${paramIndex + 1} AS DECIMAL)
-                    )`;
-                  } else {
-                    condition = `EXISTS (
-                      SELECT 1 FROM "Cell" fc 
-                      WHERE fc."rowId" = r.id 
-                      AND fc."columnId" = $${paramIndex} 
-                      AND COALESCE(fc.value, '') > $${paramIndex + 1}
-                    )`;
-                  }
-                  params.push(filterColumn.id, value ?? "0");
-                  paramIndex += 2;
-                  break;
+              //   case "equal":
+              //     condition = `EXISTS (
+              //       SELECT 1 FROM "Cell" fc
+              //       WHERE fc."rowId" = r.id
+              //       AND fc."columnId" = $${paramIndex}
+              //       AND COALESCE(fc.value, '') = $${paramIndex + 1}
+              //     )`;
+              //     params.push(filterColumn.id, value ?? "");
+              //     paramIndex += 2;
+              //     break;
 
-                case "smaller":
-                  if (filterColumn.type === "NUMBER") {
-                    condition = `EXISTS (
-                      SELECT 1 FROM "Cell" fc 
-                      WHERE fc."rowId" = r.id 
-                      AND fc."columnId" = $${paramIndex} 
-                      AND CAST(COALESCE(fc.value, '0') AS DECIMAL) < CAST($${paramIndex + 1} AS DECIMAL)
-                    )`;
-                  } else {
-                    condition = `EXISTS (
-                      SELECT 1 FROM "Cell" fc 
-                      WHERE fc."rowId" = r.id 
-                      AND fc."columnId" = $${paramIndex} 
-                      AND COALESCE(fc.value, '') < $${paramIndex + 1}
-                    )`;
-                  }
-                  params.push(filterColumn.id, value ?? "0");
-                  paramIndex += 2;
-                  break;
-              }
+              //   case "greater":
+              //     if (filterColumn.type === "NUMBER") {
+              //       condition = `EXISTS (
+              //         SELECT 1 FROM "Cell" fc
+              //         WHERE fc."rowId" = r.id
+              //         AND fc."columnId" = $${paramIndex}
+              //         AND CAST(COALESCE(fc.value, '0') AS DECIMAL) > CAST($${paramIndex + 1} AS DECIMAL)
+              //       )`;
+              //     } else {
+              //       condition = `EXISTS (
+              //         SELECT 1 FROM "Cell" fc
+              //         WHERE fc."rowId" = r.id
+              //         AND fc."columnId" = $${paramIndex}
+              //         AND COALESCE(fc.value, '') > $${paramIndex + 1}
+              //       )`;
+              //     }
+              //     params.push(filterColumn.id, value ?? "0");
+              //     paramIndex += 2;
+              //     break;
+
+              //   case "smaller":
+              //     if (filterColumn.type === "NUMBER") {
+              //       condition = `EXISTS (
+              //         SELECT 1 FROM "Cell" fc
+              //         WHERE fc."rowId" = r.id
+              //         AND fc."columnId" = $${paramIndex}
+              //         AND CAST(COALESCE(fc.value, '0') AS DECIMAL) < CAST($${paramIndex + 1} AS DECIMAL)
+              //       )`;
+              //     } else {
+              //       condition = `EXISTS (
+              //         SELECT 1 FROM "Cell" fc
+              //         WHERE fc."rowId" = r.id
+              //         AND fc."columnId" = $${paramIndex}
+              //         AND COALESCE(fc.value, '') < $${paramIndex + 1}
+              //       )`;
+              //     }
+              //     params.push(filterColumn.id, value ?? "0");
+              //     paramIndex += 2;
+              //     break;
+              // }
 
               if (condition) {
                 filterConditions.push(condition);
@@ -518,112 +522,116 @@ export const tableRouter = createTRPCRouter({
           );
           if (!filterColumn) continue;
 
-          let condition = "";
+          const { condition, newParamIndex, moreParams } =
+            handleChooseFilterQuery(op, value!, filterColumn, paramIndex);
 
-          switch (op) {
-            case "is_empty":
-              condition = `NOT EXISTS (
-                SELECT 1 FROM "Cell" fc 
-                WHERE fc."rowId" = r.id 
-                AND fc."columnId" = $${paramIndex} 
-                AND fc.value IS NOT NULL 
-                AND fc.value != ''
-              )`;
-              params.push(filterColumn.id);
-              paramIndex++;
-              break;
+          params.push(...moreParams);
+          paramIndex = newParamIndex;
 
-            case "is_not_empty":
-              condition = `EXISTS (
-                SELECT 1 FROM "Cell" fc 
-                WHERE fc."rowId" = r.id 
-                AND fc."columnId" = $${paramIndex} 
-                AND fc.value IS NOT NULL 
-                AND fc.value != ''
-              )`;
-              params.push(filterColumn.id);
-              paramIndex++;
-              break;
+          // switch (op) {
+          //   case "is_empty":
+          //     condition = `NOT EXISTS (
+          //       SELECT 1 FROM "Cell" fc
+          //       WHERE fc."rowId" = r.id
+          //       AND fc."columnId" = $${paramIndex}
+          //       AND fc.value IS NOT NULL
+          //       AND fc.value != ''
+          //     )`;
+          //     params.push(filterColumn.id);
+          //     paramIndex++;
+          //     break;
 
-            case "contains":
-              condition = `EXISTS (
-                SELECT 1 FROM "Cell" fc 
-                WHERE fc."rowId" = r.id 
-                AND fc."columnId" = $${paramIndex} 
-                AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
-              )`;
-              params.push(filterColumn.id, `%${value}%`);
-              paramIndex += 2;
-              break;
+          //   case "is_not_empty":
+          //     condition = `EXISTS (
+          //       SELECT 1 FROM "Cell" fc
+          //       WHERE fc."rowId" = r.id
+          //       AND fc."columnId" = $${paramIndex}
+          //       AND fc.value IS NOT NULL
+          //       AND fc.value != ''
+          //     )`;
+          //     params.push(filterColumn.id);
+          //     paramIndex++;
+          //     break;
 
-            case "not_contains":
-              condition = `NOT EXISTS (
-                SELECT 1 FROM "Cell" fc 
-                WHERE fc."rowId" = r.id 
-                AND fc."columnId" = $${paramIndex} 
-                AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
-              )`;
-              params.push(filterColumn.id, `%${value}%`);
-              paramIndex += 2;
-              break;
+          //   case "contains":
+          //     condition = `EXISTS (
+          //       SELECT 1 FROM "Cell" fc
+          //       WHERE fc."rowId" = r.id
+          //       AND fc."columnId" = $${paramIndex}
+          //       AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
+          //     )`;
+          //     params.push(filterColumn.id, `%${value}%`);
+          //     paramIndex += 2;
+          //     break;
 
-            case "equal":
-              condition = `EXISTS (
-                SELECT 1 FROM "Cell" fc 
-                WHERE fc."rowId" = r.id 
-                AND fc."columnId" = $${paramIndex} 
-                AND COALESCE(fc.value, '') = $${paramIndex + 1}
-              )`;
-              params.push(filterColumn.id, value ?? "");
-              paramIndex += 2;
-              break;
+          //   case "not_contains":
+          //     condition = `NOT EXISTS (
+          //       SELECT 1 FROM "Cell" fc
+          //       WHERE fc."rowId" = r.id
+          //       AND fc."columnId" = $${paramIndex}
+          //       AND LOWER(COALESCE(fc.value, '')) LIKE LOWER($${paramIndex + 1})
+          //     )`;
+          //     params.push(filterColumn.id, `%${value}%`);
+          //     paramIndex += 2;
+          //     break;
 
-            case "greater":
-              const filterCol = columns.find(
-                (col) => col.name === filterColumnName,
-              );
-              if (filterCol?.type === "NUMBER") {
-                condition = `EXISTS (
-                  SELECT 1 FROM "Cell" fc 
-                  WHERE fc."rowId" = r.id 
-                  AND fc."columnId" = $${paramIndex} 
-                  AND CAST(COALESCE(fc.value, '0') AS DECIMAL) > CAST($${paramIndex + 1} AS DECIMAL)
-                )`;
-              } else {
-                condition = `EXISTS (
-                  SELECT 1 FROM "Cell" fc 
-                  WHERE fc."rowId" = r.id 
-                  AND fc."columnId" = $${paramIndex} 
-                  AND COALESCE(fc.value, '') > $${paramIndex + 1}
-                )`;
-              }
-              params.push(filterColumn.id, value ?? "0");
-              paramIndex += 2;
-              break;
+          //   case "equal":
+          //     condition = `EXISTS (
+          //       SELECT 1 FROM "Cell" fc
+          //       WHERE fc."rowId" = r.id
+          //       AND fc."columnId" = $${paramIndex}
+          //       AND COALESCE(fc.value, '') = $${paramIndex + 1}
+          //     )`;
+          //     params.push(filterColumn.id, value ?? "");
+          //     paramIndex += 2;
+          //     break;
 
-            case "smaller":
-              const filterCol2 = columns.find(
-                (col) => col.name === filterColumnName,
-              );
-              if (filterCol2?.type === "NUMBER") {
-                condition = `EXISTS (
-                  SELECT 1 FROM "Cell" fc 
-                  WHERE fc."rowId" = r.id 
-                  AND fc."columnId" = $${paramIndex} 
-                  AND CAST(COALESCE(fc.value, '0') AS DECIMAL) < CAST($${paramIndex + 1} AS DECIMAL)
-                )`;
-              } else {
-                condition = `EXISTS (
-                  SELECT 1 FROM "Cell" fc 
-                  WHERE fc."rowId" = r.id 
-                  AND fc."columnId" = $${paramIndex} 
-                  AND COALESCE(fc.value, '') < $${paramIndex + 1}
-                )`;
-              }
-              params.push(filterColumn.id, value ?? "0");
-              paramIndex += 2;
-              break;
-          }
+          //   case "greater":
+          //     const filterCol = columns.find(
+          //       (col) => col.name === filterColumnName,
+          //     );
+          //     if (filterCol?.type === "NUMBER") {
+          //       condition = `EXISTS (
+          //         SELECT 1 FROM "Cell" fc
+          //         WHERE fc."rowId" = r.id
+          //         AND fc."columnId" = $${paramIndex}
+          //         AND CAST(COALESCE(fc.value, '0') AS DECIMAL) > CAST($${paramIndex + 1} AS DECIMAL)
+          //       )`;
+          //     } else {
+          //       condition = `EXISTS (
+          //         SELECT 1 FROM "Cell" fc
+          //         WHERE fc."rowId" = r.id
+          //         AND fc."columnId" = $${paramIndex}
+          //         AND COALESCE(fc.value, '') > $${paramIndex + 1}
+          //       )`;
+          //     }
+          //     params.push(filterColumn.id, value ?? "0");
+          //     paramIndex += 2;
+          //     break;
+
+          //   case "smaller":
+          //     const filterCol2 = columns.find(
+          //       (col) => col.name === filterColumnName,
+          //     );
+          //     if (filterCol2?.type === "NUMBER") {
+          //       condition = `EXISTS (
+          //         SELECT 1 FROM "Cell" fc
+          //         WHERE fc."rowId" = r.id
+          //         AND fc."columnId" = $${paramIndex}
+          //         AND CAST(COALESCE(fc.value, '0') AS DECIMAL) < CAST($${paramIndex + 1} AS DECIMAL)
+          //       )`;
+          //     } else {
+          //       condition = `EXISTS (
+          //         SELECT 1 FROM "Cell" fc
+          //         WHERE fc."rowId" = r.id
+          //         AND fc."columnId" = $${paramIndex}
+          //         AND COALESCE(fc.value, '') < $${paramIndex + 1}
+          //       )`;
+          //     }
+          //     params.push(filterColumn.id, value ?? "0");
+          //     paramIndex += 2;
+          //     break;
+          // }
 
           if (condition) {
             filterConditions.push(condition);
