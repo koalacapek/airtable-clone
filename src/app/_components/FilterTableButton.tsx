@@ -28,7 +28,11 @@ const FilterTableButton = ({
 
   // Array of filter input states
   const [filterInputs, setFilterInputs] = useState<
-    { filterBy?: string; filterOperator: string; filterValue: string }[]
+    {
+      filterBy?: string;
+      filterOperator?: string;
+      filterValue?: string;
+    }[]
   >([{ filterBy: undefined, filterOperator: "", filterValue: "" }]);
 
   const { data: columnsData } = api.table.getTableMetadata.useQuery(
@@ -151,6 +155,7 @@ const FilterTableButton = ({
           }
         }
       });
+      console.log(newFilters);
       onUpdate(newFilters);
     }, 400);
     return () => {

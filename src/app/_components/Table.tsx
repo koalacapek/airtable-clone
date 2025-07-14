@@ -329,7 +329,7 @@ const Table = ({
                   return (
                     <th
                       key={header.id}
-                      className={`sticky top-0 z-0 overflow-hidden border p-2 text-left ${
+                      className={`sticky top-0 z-0 border p-2 text-left ${
                         isRowNumberColumn
                           ? "left-0 z-50 w-16"
                           : isNameColumn
@@ -408,13 +408,13 @@ const Table = ({
                     return (
                       <td
                         key={cell.id}
-                        className={`overflow-hidden border p-2 focus-within:border-blue-500 ${
+                        className={`z-0 overflow-hidden border p-2 focus-within:border-blue-500 ${
                           isRowNumberColumn
-                            ? "sticky left-0 z-20"
+                            ? "sticky left-0 z-50"
                             : isNameColumn
-                              ? "sticky left-16 z-20"
+                              ? "sticky left-16 z-50"
                               : isAgeColumn
-                                ? "sticky left-64 z-20"
+                                ? "sticky left-64 z-50"
                                 : "w-32"
                         } ${
                           isCurrent && isMatch
