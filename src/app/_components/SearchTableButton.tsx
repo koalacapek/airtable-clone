@@ -59,7 +59,14 @@ const SearchTableButton = ({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <div className="space-y-2">
-          <label className="text-sm font-medium">Search all fields</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Search all fields</label>
+            <X
+              size={16}
+              onClick={handleClearSearch}
+              className="hover:cursor-pointer"
+            />
+          </div>
           <div className="relative">
             <Input
               className="w-full pr-8"
