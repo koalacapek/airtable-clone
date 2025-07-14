@@ -115,7 +115,7 @@ const ViewsSidebar = ({
         <PopoverTrigger>
           <div
             onClick={() => setIsCreating(true)}
-            className="mb-3 flex items-center gap-x-2 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200"
+            className="mb-3 flex items-center gap-x-2 rounded-sm p-2 hover:cursor-pointer"
           >
             <Plus size={14} strokeWidth={1.5} />
             <h3 className="text-xs text-gray-900">Create new...</h3>
