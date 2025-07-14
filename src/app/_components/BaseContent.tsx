@@ -75,7 +75,6 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
 
   useEffect(() => {
     setMatchingCells(cells ?? []);
-    console.log(cells);
   }, [cells]);
 
   useEffect(() => {

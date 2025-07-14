@@ -26,12 +26,13 @@ const FilterTableButton = ({
     { name: string; id: string; type: string }[]
   >([]);
 
-  // Array of filter input states
+  // Array of filter input states with logical operators
   const [filterInputs, setFilterInputs] = useState<
     {
       filterBy?: string;
       filterOperator?: string;
       filterValue?: string;
+      logicalOperator?: "AND" | "OR";
     }[]
   >([{ filterBy: undefined, filterOperator: "", filterValue: "" }]);
 
@@ -53,25 +54,54 @@ const FilterTableButton = ({
   // Update filterInputs when filters prop changes (e.g., when switching views)
   useEffect(() => {
     if (filters && Object.keys(filters).length > 0) {
-      const newFilterInputs: {
-        filterBy?: string;
-        filterOperator?: string;
-        filterValue?: string;
-      }[] = [];
+      // Check if filters have the new structure with logical operators
+      if (filters.logicalType && filters.conditions) {
+        const newFilterInputs: {
+          filterBy?: string;
+          filterOperator?: string;
+          filterValue?: string;
+          logicalOperator?: "AND" | "OR";
+        }[] = [];
 
-      Object.entries(filters).forEach(([columnName, config]) => {
-        // Each column can now store an array of filter configs
-        const filterConfigs = Array.isArray(config) ? config : [config];
-        filterConfigs.forEach((fc) => {
-          const filterConfig = fc as { op: string; value?: string };
+        (
+          filters.conditions as {
+            column: string;
+            operator: string;
+            value?: string;
+            logicalOperator?: "AND" | "OR";
+          }[]
+        ).forEach((condition, index) => {
           newFilterInputs.push({
-            filterBy: columnName,
-            filterOperator: filterConfig.op,
-            filterValue: filterConfig.value ?? "",
+            filterBy: condition.column,
+            filterOperator: condition.operator,
+            filterValue: condition.value ?? "",
+            logicalOperator: index > 0 ? condition.logicalOperator : undefined,
           });
         });
-      });
-      setFilterInputs(newFilterInputs);
+        setFilterInputs(newFilterInputs);
+      } else {
+        // Handle legacy filter structure
+        const newFilterInputs: {
+          filterBy?: string;
+          filterOperator?: string;
+          filterValue?: string;
+          logicalOperator?: "AND" | "OR";
+        }[] = [];
+
+        Object.entries(filters).forEach(([columnName, config]) => {
+          const filterConfigs = Array.isArray(config) ? config : [config];
+          filterConfigs.forEach((fc) => {
+            const filterConfig = fc as { op: string; value?: string };
+            newFilterInputs.push({
+              filterBy: columnName,
+              filterOperator: filterConfig.op,
+              filterValue: filterConfig.value ?? "",
+              logicalOperator: newFilterInputs.length > 0 ? "AND" : undefined,
+            });
+          });
+        });
+        setFilterInputs(newFilterInputs);
+      }
     } else {
       // Reset to empty state when no filters
       setFilterInputs([
@@ -96,6 +126,12 @@ const FilterTableButton = ({
     { value: "smaller", label: "less than" },
   ];
 
+  // Logical operator options
+  const logicalOperators = [
+    { value: "AND", label: "AND" },
+    { value: "OR", label: "OR" },
+  ];
+
   // Handle filter input changes
   const handleFilterInputChange = (
     index: number,
@@ -113,6 +149,9 @@ const FilterTableButton = ({
     ) {
       input[field] = value;
       setFilterInputs(newInputs);
+    } else if (field === "logicalOperator") {
+      input.logicalOperator = value as "AND" | "OR";
+      setFilterInputs(newInputs);
     }
   };
 
@@ -120,7 +159,12 @@ const FilterTableButton = ({
   const handleAddFilterInput = () => {
     setFilterInputs([
       ...filterInputs,
-      { filterBy: undefined, filterOperator: "", filterValue: "" },
+      {
+        filterBy: undefined,
+        filterOperator: "",
+        filterValue: "",
+        logicalOperator: filterInputs.length > 0 ? "AND" : undefined,
+      },
     ]);
   };
 
@@ -128,6 +172,13 @@ const FilterTableButton = ({
   const handleRemoveFilterInput = (index: number) => {
     const newInputs = [...filterInputs];
     newInputs.splice(index, 1);
+
+    // If we removed the first item and there are remaining items,
+    // remove the logical operator from the new first item
+    if (index === 0 && newInputs.length > 0) {
+      newInputs[0]!.logicalOperator = undefined;
+    }
+
     // If no filters remain, provide a blank input row so the UI isn't empty
     if (newInputs.length === 0) {
       newInputs.push({
@@ -147,35 +198,54 @@ const FilterTableButton = ({
     if (!filterInputs.length) return;
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     debounceTimeout.current = setTimeout(() => {
-      const newFilters: Record<string, { op: string; value?: string }[]> = {};
-      filterInputs.forEach((input) => {
+      const conditions: {
+        column: string;
+        operator: string;
+        value?: string;
+        logicalOperator?: "AND" | "OR";
+      }[] = [];
+
+      filterInputs.forEach((input, index) => {
         if (!input.filterBy || !input.filterOperator) return;
         if (
           input.filterOperator === "is_empty" ||
           input.filterOperator === "is_not_empty" ||
           input.filterValue // only apply if value is not empty for value-based ops
         ) {
-          let filterObj: { op: string; value?: string };
-          if (input.filterOperator === "is_empty") {
-            filterObj = { op: "is_empty" };
-          } else if (input.filterOperator === "is_not_empty") {
-            filterObj = { op: "is_not_empty" };
-          } else {
-            filterObj = {
-              op: input.filterOperator,
-              value: input.filterValue,
-            };
+          const condition: {
+            column: string;
+            operator: string;
+            value?: string;
+            logicalOperator?: "AND" | "OR";
+          } = {
+            column: input.filterBy,
+            operator: input.filterOperator,
+          };
+
+          if (
+            input.filterOperator !== "is_empty" &&
+            input.filterOperator !== "is_not_empty"
+          ) {
+            condition.value = input.filterValue;
           }
 
-          if (newFilters[input.filterBy ?? ""]) {
-            newFilters[input.filterBy ?? ""]?.push(filterObj);
-          } else {
-            newFilters[input.filterBy ?? ""] = [filterObj];
+          if (index > 0 && input.logicalOperator) {
+            condition.logicalOperator = input.logicalOperator;
           }
+
+          conditions.push(condition);
         }
       });
+
+      const newFilters =
+        conditions.length > 0
+          ? {
+              logicalType: "AND", // Default overall logic
+              conditions: conditions,
+            }
+          : {};
+
       onUpdate(newFilters);
-      console.log(newFilters);
     }, 400);
     return () => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
@@ -222,80 +292,109 @@ const FilterTableButton = ({
           const operatorOptions = isTextColumn
             ? textOperators
             : numberOperators;
+
           return (
-            <div key={idx} className="mb-2 flex w-full">
-              <div className="flex flex-1 flex-col">
-                <Select
-                  value={input.filterBy}
-                  onValueChange={(val) =>
-                    handleFilterInputChange(idx, "filterBy", val)
-                  }
-                >
-                  <SelectTrigger className="w-30 p-1 text-sm">
-                    {input.filterBy ?? "Column"}
-                  </SelectTrigger>
-                  <SelectContent>
-                    {columns.map(
-                      (column) =>
-                        column.name !== "#" && (
-                          <SelectItem key={column.id} value={column.name}>
-                            {column.name}
+            <div key={idx} className="space-y-2">
+              {/* Show AND/OR selector for all filters except the first one */}
+              {idx > 0 && (
+                <div className="flex items-center justify-center">
+                  <Select
+                    value={input.logicalOperator ?? "AND"}
+                    onValueChange={(val) =>
+                      handleFilterInputChange(idx, "logicalOperator", val)
+                    }
+                  >
+                    <SelectTrigger className="w-20 p-1 text-sm font-medium">
+                      {input.logicalOperator ?? "AND"}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {logicalOperators.map((op) => (
+                          <SelectItem key={op.value} value={op.value}>
+                            {op.label}
                           </SelectItem>
-                        ),
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-1 flex-col space-y-1">
-                <Select
-                  value={input.filterOperator}
-                  onValueChange={(val) =>
-                    handleFilterInputChange(idx, "filterOperator", val)
-                  }
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Filter row */}
+              <div className="mb-2 flex w-full">
+                <div className="flex flex-1 flex-col">
+                  <Select
+                    value={input.filterBy}
+                    onValueChange={(val) =>
+                      handleFilterInputChange(idx, "filterBy", val)
+                    }
+                  >
+                    <SelectTrigger className="w-30 p-1 text-sm">
+                      {input.filterBy ?? "Column"}
+                    </SelectTrigger>
+                    <SelectContent>
+                      {columns.map(
+                        (column) =>
+                          column.name !== "#" && (
+                            <SelectItem key={column.id} value={column.name}>
+                              {column.name}
+                            </SelectItem>
+                          ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-1 flex-col space-y-1">
+                  <Select
+                    value={input.filterOperator}
+                    onValueChange={(val) =>
+                      handleFilterInputChange(idx, "filterOperator", val)
+                    }
+                  >
+                    <SelectTrigger className="w-30 border p-1 text-sm">
+                      {operatorOptions.find(
+                        (op) => op.value === input.filterOperator,
+                      )?.label ?? "Operator"}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {operatorOptions.map((op) => (
+                          <SelectItem key={op.value} value={op.value}>
+                            {op.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Show value input only if operator is not is_empty/is_not_empty */}
+                {input.filterOperator !== "is_empty" &&
+                  input.filterOperator !== "is_not_empty" && (
+                    <div className="flex flex-1 flex-col space-y-1">
+                      <Input
+                        className="w-full rounded-sm border p-1 text-sm"
+                        type={isTextColumn ? "text" : "number"}
+                        value={input.filterValue}
+                        onChange={(e) =>
+                          handleFilterInputChange(
+                            idx,
+                            "filterValue",
+                            e.target.value,
+                          )
+                        }
+                        placeholder={
+                          isTextColumn ? "Enter value" : "Enter number"
+                        }
+                      />
+                    </div>
+                  )}
+                <button
+                  onClick={() => handleRemoveFilterInput(idx)}
+                  className="rounded p-1 hover:cursor-pointer hover:bg-gray-100"
                 >
-                  <SelectTrigger className="w-30 border p-1 text-sm">
-                    {operatorOptions.find(
-                      (op) => op.value === input.filterOperator,
-                    )?.label ?? "Operator"}
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {operatorOptions.map((op) => (
-                        <SelectItem key={op.value} value={op.value}>
-                          {op.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  <X size={14} className="text-gray-500" />
+                </button>
               </div>
-              {/* Show value input only if operator is not is_empty/is_not_empty */}
-              {input.filterOperator !== "is_empty" &&
-                input.filterOperator !== "is_not_empty" && (
-                  <div className="flex flex-1 flex-col space-y-1">
-                    <Input
-                      className="w-full rounded-sm border p-1 text-sm"
-                      type={isTextColumn ? "text" : "number"}
-                      value={input.filterValue}
-                      onChange={(e) =>
-                        handleFilterInputChange(
-                          idx,
-                          "filterValue",
-                          e.target.value,
-                        )
-                      }
-                      placeholder={
-                        isTextColumn ? "Enter value" : "Enter number"
-                      }
-                    />
-                  </div>
-                )}
-              <button
-                onClick={() => handleRemoveFilterInput(idx)}
-                className="rounded p-1 hover:cursor-pointer hover:bg-gray-100"
-              >
-                <X size={14} className="text-gray-500" />
-              </button>
             </div>
           );
         })}

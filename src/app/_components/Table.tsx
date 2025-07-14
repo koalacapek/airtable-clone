@@ -205,7 +205,6 @@ const Table = ({
 
   const handleCreateColumn = useCallback(() => {
     if (!activeTab || !newColumnName.trim()) return;
-    console.log(newColumnName, newColumnType);
 
     createColumn({
       tableId: activeTab,
@@ -301,7 +300,7 @@ const Table = ({
         onScroll={(e) => handleScroll(e.currentTarget)}
       >
         <table className="w-max border border-gray-200 text-sm">
-          <thead className="sticky -top-0.5 z-40 border">
+          <thead className="sticky z-40 border">
             {tableInstance.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
@@ -419,7 +418,7 @@ const Table = ({
                               : isAgeColumn
                                 ? "sticky left-64 z-30"
                                 : "w-32"
-                        } ${isDefaultColumn ? "bg-white" : "bg-transparent"}} } ${
+                        } ${
                           isCurrent && isMatch
                             ? "bg-orange-400 hover:bg-orange-400"
                             : isMatch && !isCurrent
@@ -428,8 +427,10 @@ const Table = ({
                                 ? "bg-blue-50"
                                 : isFiltered
                                   ? "bg-green-50"
-                                  : "bg-white"
-                        } ${isRowNumberColumn ? "" : "hover:bg-gray-100"}`}
+                                  : isDefaultColumn
+                                    ? "bg-gray-50"
+                                    : "bg-white"
+                        } `}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,

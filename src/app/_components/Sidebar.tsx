@@ -24,7 +24,6 @@ export default function Sidebar({ isExpanded }: { isExpanded: boolean }) {
 
   const { mutate, isPending } = api.base.create.useMutation({
     onSuccess: (newBase) => {
-      console.log("Base created:", newBase);
       void utils.base.getAll.invalidate(); // Invalidate the cache to refetch bases
       // e.g., redirect or refetch
       void router.push(
