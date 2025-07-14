@@ -85,7 +85,7 @@ const SearchTableButton = ({
             )}
           </div>
 
-          {hasSearchValue && totalMatches > 0 && (
+          {hasSearchValue && totalMatches > 0 ? (
             <div className="flex items-center justify-between">
               <p className="text-xs text-gray-500">
                 {currentMatchIndex + 1} of {totalMatches}
@@ -108,6 +108,12 @@ const SearchTableButton = ({
                   <ChevronDown size={12} />
                 </Button>
               </div>
+            </div>
+          ) : (
+            <div className="flex items-center">
+              {localSearchValue.length !== 0 && (
+                <p className="text-xs text-gray-500">No results found</p>
+              )}
             </div>
           )}
 
