@@ -486,8 +486,7 @@ export const tableRouter = createTRPCRouter({
         };
       }
 
-      // For the non-sorted case, we need to use a different approach if we have filters
-      // because Prisma doesn't handle the complex cell filtering well
+      // For the non-sorted case
       if (filters && Object.keys(filters).length > 0) {
         // Use raw SQL for filtering even in the non-sorted case
         let sql = `
