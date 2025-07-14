@@ -311,6 +311,13 @@ const Table = ({
                     (c) => c.name === header.column.id,
                   );
 
+                  // If name column is found, then its not hidden
+                  const isNameHidden = tableMetadata.columns.find(
+                    (c) => c.name === "Name",
+                  )
+                    ? false
+                    : true;
+
                   // Check if this column is sorted
                   const isSorted =
                     viewConditions?.sort &&
@@ -333,9 +340,11 @@ const Table = ({
                           ? "left-0 z-50 w-16"
                           : isNameColumn
                             ? "left-16 z-50 w-48"
-                            : isAgeColumn
+                            : isAgeColumn && !isNameHidden
                               ? "left-64 z-50 w-32"
-                              : "w-32"
+                              : isNameHidden
+                                ? "left-16"
+                                : "w-32"
                       } ${isSorted ? "bg-blue-100" : "bg-gray-100"} ${
                         isFiltered ? "bg-yellow-100" : ""
                       } ${isSorted && isFiltered ? "bg-green-100" : ""}`}
@@ -381,6 +390,13 @@ const Table = ({
                       (c) => c.name === cell.column.id,
                     );
 
+                    // If name column is found, then its not hidden
+                    const isNameHidden = tableMetadata.columns.find(
+                      (c) => c.name === "Name",
+                    )
+                      ? false
+                      : true;
+
                     const isDefaultColumn =
                       isRowNumberColumn || isNameColumn || isAgeColumn;
 
@@ -415,9 +431,11 @@ const Table = ({
                             ? "sticky left-0 z-30"
                             : isNameColumn
                               ? "sticky left-16 z-30"
-                              : isAgeColumn
+                              : isAgeColumn && !isNameHidden
                                 ? "sticky left-64 z-30"
-                                : "w-32"
+                                : isNameHidden
+                                  ? "sticky left-16"
+                                  : "w-32"
                         } ${
                           isCurrent && isMatch
                             ? "bg-orange-400 hover:bg-orange-400"
