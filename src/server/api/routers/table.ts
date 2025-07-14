@@ -4,6 +4,7 @@ import { faker } from "@faker-js/faker";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import type { Prisma } from "@prisma/client";
+import { processFilters } from "~/server/utils/table";
 
 export const tableRouter = createTRPCRouter({
   getAllByBase: protectedProcedure
@@ -96,7 +97,7 @@ export const tableRouter = createTRPCRouter({
       }
 
       // Create rows and cells
-      const rowData = Array.from({ length: 200 }).map(() => ({
+      const rowData = Array.from({ length: 20 }).map(() => ({
         name: faker.person.fullName(),
         age: faker.number.int({ min: 18, max: 65 }).toString(),
       }));
@@ -197,7 +198,6 @@ export const tableRouter = createTRPCRouter({
 
       const columns = await ctx.db.column.findMany({
         where: { tableId },
-        select: { id: true, name: true, type: true },
       });
 
       // If we have sorting, use raw SQL for efficient global sorting
@@ -220,7 +220,22 @@ export const tableRouter = createTRPCRouter({
           const params: (string | number | null)[] = [sortColumn.id, tableId];
           let paramIndex = 3;
 
-          // Add cursor condition for pagination - this is the key fix
+          // Add filter conditions to the SQL query
+          if (filters && Object.keys(filters).length > 0) {
+            const {
+              condition: filterCondition,
+              newParamIndex,
+              moreParams,
+            } = processFilters(filters, columns, paramIndex);
+
+            if (filterCondition) {
+              sql += ` AND ${filterCondition}`;
+              params.push(...moreParams);
+              paramIndex = newParamIndex;
+            }
+          }
+
+          // Add cursor condition for pagination
           if (cursor) {
             const sortDirection =
               sortConfig.direction === "asc" ? "ASC" : "DESC";
@@ -325,54 +340,6 @@ export const tableRouter = createTRPCRouter({
             (id) => fullRows.find((row) => row.id === id)!,
           );
 
-          // Apply filters if needed
-          let filteredRows = orderedRows;
-          if (filters && Object.keys(filters).length > 0) {
-            filteredRows = orderedRows.filter((row) => {
-              const cellData: Record<string, string | null> = {};
-              row.cells.forEach((cell) => {
-                cellData[cell.column.name] = cell.value;
-              });
-
-              return Object.entries(filters).every(
-                ([columnName, filterConfig]) => {
-                  const { op, value } = filterConfig as {
-                    op: string;
-                    value?: string;
-                  };
-                  const cellValue = cellData[columnName];
-
-                  switch (op) {
-                    case "is_empty":
-                      return !cellValue || cellValue === "";
-                    case "is_not_empty":
-                      return cellValue && cellValue !== "";
-                    case "contains":
-                      return cellValue
-                        ?.toLowerCase()
-                        .includes(value?.toLowerCase() ?? "");
-                    case "not_contains":
-                      return !cellValue
-                        ?.toLowerCase()
-                        .includes(value?.toLowerCase() ?? "");
-                    case "equal":
-                      return cellValue === value;
-                    case "greater":
-                      return (
-                        parseFloat(cellValue ?? "0") > parseFloat(value ?? "0")
-                      );
-                    case "smaller":
-                      return (
-                        parseFloat(cellValue ?? "0") < parseFloat(value ?? "0")
-                      );
-                    default:
-                      return true;
-                  }
-                },
-              );
-            });
-          }
-
           // Determine next cursor using the last row from the ORIGINAL query result
           let nextCursor: typeof input.cursor | undefined = undefined;
           if (hasMore) {
@@ -384,13 +351,13 @@ export const tableRouter = createTRPCRouter({
           }
 
           return {
-            rows: filteredRows,
+            rows: orderedRows,
             nextCursor,
           };
         }
       }
 
-      // If no sorting, use the simpler approach
+      // If no sorting, use the simpler approach with proper filtering
       const rowWhereClause: Prisma.RowWhereInput = {
         tableId,
       };
@@ -402,6 +369,98 @@ export const tableRouter = createTRPCRouter({
         };
       }
 
+      // For the non-sorted case
+      if (filters && Object.keys(filters).length > 0) {
+        // Use raw SQL for filtering even in the non-sorted case
+        let sql = `
+          SELECT DISTINCT r.id, r."tableId"
+          FROM "Row" r
+          WHERE r."tableId" = $1
+        `;
+
+        const params: (string | number | null)[] = [tableId];
+        let paramIndex = 2;
+
+        // Add cursor condition
+        if (cursor) {
+          sql += ` AND r.id > $${paramIndex}`;
+          params.push(cursor.id);
+          paramIndex++;
+        }
+
+        // Add filter conditions
+        const {
+          condition: filterCondition,
+          newParamIndex,
+          moreParams,
+        } = processFilters(filters, columns, paramIndex);
+
+        if (filterCondition) {
+          sql += ` AND ${filterCondition}`;
+          params.push(...moreParams);
+          paramIndex = newParamIndex;
+        }
+
+        sql += ` ORDER BY r.id ASC LIMIT $${paramIndex}`;
+        params.push(limit + 1);
+
+        // Execute the query to get filtered row IDs
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+        const filteredRowIds = (await ctx.db.$queryRawUnsafe(
+          sql,
+          ...params,
+        )) as {
+          id: string;
+          tableId: string;
+        }[];
+
+        // Check if there are more rows
+        const hasMore = filteredRowIds.length > limit;
+        const resultRowIds = filteredRowIds.slice(0, limit);
+
+        if (resultRowIds.length === 0) {
+          return {
+            rows: [],
+            nextCursor: undefined,
+          };
+        }
+
+        // Get full row data
+        const fullRows = await ctx.db.row.findMany({
+          where: {
+            id: { in: resultRowIds.map((r) => r.id) },
+          },
+          include: {
+            cells: {
+              include: {
+                column: {
+                  select: { name: true, type: true },
+                },
+              },
+            },
+          },
+          orderBy: {
+            id: "asc",
+          },
+        });
+
+        // Determine next cursor
+        let nextCursor: typeof input.cursor | undefined = undefined;
+        if (hasMore && fullRows.length > 0) {
+          const lastRow = fullRows[fullRows.length - 1];
+          nextCursor = {
+            id: lastRow?.id ?? "",
+            value: null,
+          };
+        }
+
+        return {
+          rows: fullRows,
+          nextCursor,
+        };
+      }
+
+      // Original simple case (no filters, no sorting)
       const rows = await ctx.db.row.findMany({
         where: rowWhereClause,
         include: {
@@ -419,57 +478,14 @@ export const tableRouter = createTRPCRouter({
         },
       });
 
-      // Apply filters if needed
-      let filteredRows = rows;
-      if (filters && Object.keys(filters).length > 0) {
-        filteredRows = rows.filter((row) => {
-          const cellData: Record<string, string | null> = {};
-          row.cells.forEach((cell) => {
-            cellData[cell.column.name] = cell.value;
-          });
-
-          return Object.entries(filters).every(([columnName, filterConfig]) => {
-            const { op, value } = filterConfig as {
-              op: string;
-              value?: string;
-            };
-            const cellValue = cellData[columnName];
-
-            switch (op) {
-              case "is_empty":
-                return !cellValue || cellValue === "";
-              case "is_not_empty":
-                return cellValue && cellValue !== "";
-              case "contains":
-                return cellValue
-                  ?.toLowerCase()
-                  .includes(value?.toLowerCase() ?? "");
-              case "not_contains":
-                return !cellValue
-                  ?.toLowerCase()
-                  .includes(value?.toLowerCase() ?? "");
-              case "equal":
-                return cellValue === value;
-              case "greater":
-                return parseFloat(cellValue ?? "0") > parseFloat(value ?? "0");
-              case "smaller":
-                return parseFloat(cellValue ?? "0") < parseFloat(value ?? "0");
-              default:
-                return true;
-            }
-          });
-        });
-      }
-
       // Handle pagination
-      const hasMore = filteredRows.length > limit;
-      const resultRows = filteredRows.slice(0, limit);
+      const hasMore = rows.length > limit;
+      const resultRows = rows.slice(0, limit);
 
       // Determine next cursor
       let nextCursor: typeof input.cursor | undefined = undefined;
       if (hasMore && resultRows.length > 0) {
         const lastRow = resultRows[resultRows.length - 1];
-
         nextCursor = {
           id: lastRow?.id ?? "",
           value: null,
@@ -498,69 +514,106 @@ export const tableRouter = createTRPCRouter({
       // Get columns for filter processing
       const columns = await ctx.db.column.findMany({
         where: { tableId },
-        select: { id: true, name: true, type: true },
       });
 
       // Build the base query to find rows that match the filters
       let rowIds: string[] = [];
 
       if (filters && Object.keys(filters).length > 0) {
-        // Use the same filtering logic as getTableWithDataInfinite
-        let sql = `
-        SELECT r.id
-        FROM "Row" r
-      `;
+        // Check if it's the new filter structure
+        if (
+          filters.logicalType &&
+          filters.conditions &&
+          Array.isArray(filters.conditions)
+        ) {
+          // Use the new processFilters approach for advanced filters
+          let sql = `
+            SELECT DISTINCT r.id
+            FROM "Row" r
+            WHERE r."tableId" = $1
+          `;
 
-        const params: (string | number | null)[] = [];
-        let paramIndex = 1;
+          const params: (string | number | null)[] = [tableId];
+          const paramIndex = 2;
 
-        // Filter JOINs
-        Object.entries(filters).forEach(([columnName, _], index) => {
-          const column = columns.find((col) => col.name === columnName);
-          if (!column) return;
+          const {
+            condition: filterCondition,
+            newParamIndex,
+            moreParams,
+          } = processFilters(filters, columns, paramIndex);
 
-          const alias = `c${index}`;
-          sql += ` LEFT JOIN "Cell" ${alias} ON r.id = ${alias}."rowId" AND ${alias}."columnId" = $${paramIndex++}`;
-          params.push(column.id);
-        });
-
-        // WHERE base
-        sql += ` WHERE r."tableId" = $${paramIndex++}`;
-        params.push(tableId);
-
-        // Filter conditions
-        Object.entries(filters).forEach(([columnName, filterConfig], index) => {
-          const column = columns.find((col) => col.name === columnName);
-          if (!column) return;
-
-          const alias = `c${index}`;
-          const { op, value } = filterConfig as { op: string; value?: string };
-
-          if (op === "is_empty") {
-            sql += ` AND ${alias}.id IS NULL`;
-          } else if (op === "is_not_empty") {
-            sql += ` AND ${alias}.id IS NOT NULL`;
-          } else if (op === "contains") {
-            sql += ` AND ${alias}.value ILIKE $${paramIndex++}`;
-            params.push(`%${value}%`);
-          } else if (op === "not_contains") {
-            sql += ` AND (${alias}.id IS NULL OR ${alias}.value NOT ILIKE $${paramIndex++})`;
-            params.push(`%${value}%`);
-          } else if (op === "equal") {
-            sql += ` AND ${alias}.value = $${paramIndex++}`;
-            params.push(value ?? "");
-          } else if (op === "greater") {
-            sql += ` AND ${alias}.value > $${paramIndex++}`;
-            params.push(value ?? "");
-          } else if (op === "smaller") {
-            sql += ` AND ${alias}.value < $${paramIndex++}`;
-            params.push(value ?? "");
+          if (filterCondition) {
+            sql += ` AND ${filterCondition}`;
+            params.push(...moreParams);
           }
-        });
 
-        // Run the filter query to get matching row IDs
-        const result = await ctx.db.$queryRawUnsafe(sql, ...params);
-        rowIds = (result as { id: string }[]).map((r) => r.id);
+          // Run the filter query to get matching row IDs
+          const result = await ctx.db.$queryRawUnsafe(sql, ...params);
+          rowIds = (result as { id: string }[]).map((r) => r.id);
+        } else {
+          // Use the legacy JOIN-based filtering logic
+          let sql = `
+            SELECT r.id
+            FROM "Row" r
+          `;
+
+          const params: (string | number | null)[] = [];
+          let paramIndex = 1;
+
+          // Filter JOINs
+          Object.entries(filters).forEach(([columnName, _], index) => {
+            const column = columns.find((col) => col.name === columnName);
+            if (!column) return;
+
+            const alias = `c${index}`;
+            sql += ` LEFT JOIN "Cell" ${alias} ON r.id = ${alias}."rowId" AND ${alias}."columnId" = $${paramIndex++}`;
+            params.push(column.id);
+          });
+
+          // WHERE base
+          sql += ` WHERE r."tableId" = $${paramIndex++}`;
+          params.push(tableId);
+
+          // Filter conditions
+          Object.entries(filters).forEach(
+            ([columnName, filterConfig], index) => {
+              const column = columns.find((col) => col.name === columnName);
+              if (!column) return;
+
+              const alias = `c${index}`;
+              const filterConfigsArray = Array.isArray(filterConfig)
+                ? (filterConfig as { op: string; value?: string }[])
+                : [filterConfig as { op: string; value?: string }];
+
+              filterConfigsArray.forEach(({ op, value }) => {
+                if (op === "is_empty") {
+                  sql += ` AND ${alias}.id IS NULL`;
+                } else if (op === "is_not_empty") {
+                  sql += ` AND ${alias}.id IS NOT NULL`;
+                } else if (op === "contains") {
+                  sql += ` AND ${alias}.value ILIKE $${paramIndex++}`;
+                  params.push(`%${value}%`);
+                } else if (op === "not_contains") {
+                  sql += ` AND (${alias}.id IS NULL OR ${alias}.value NOT ILIKE $${paramIndex++})`;
+                  params.push(`%${value}%`);
+                } else if (op === "equal") {
+                  sql += ` AND ${alias}.value = $${paramIndex++}`;
+                  params.push(value ?? "");
+                } else if (op === "greater") {
+                  sql += ` AND ${alias}.value > $${paramIndex++}`;
+                  params.push(value ?? "");
+                } else if (op === "smaller") {
+                  sql += ` AND ${alias}.value < $${paramIndex++}`;
+                  params.push(value ?? "");
+                }
+              });
+            },
+          );
+
+          // Run the filter query to get matching row IDs
+          const result = await ctx.db.$queryRawUnsafe(sql, ...params);
+          rowIds = (result as { id: string }[]).map((r) => r.id);
+        }
       }
 
       // Now find cells that match the search value within the filtered rows

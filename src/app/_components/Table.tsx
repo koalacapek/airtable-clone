@@ -205,7 +205,6 @@ const Table = ({
 
   const handleCreateColumn = useCallback(() => {
     if (!activeTab || !newColumnName.trim()) return;
-    console.log(newColumnName, newColumnType);
 
     createColumn({
       tableId: activeTab,
@@ -297,173 +296,174 @@ const Table = ({
     <div className="flex h-full flex-col">
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto"
+        className="flex-1 overflow-auto"
         onScroll={(e) => handleScroll(e.currentTarget)}
       >
-        <div className="overflow-x-auto">
-          <table className="w-max border border-gray-200 text-sm">
-            <thead className="sticky -top-0.5 z-40 bg-white">
-              {tableInstance.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const isRowNumberColumn = header.column.id === "#";
-                    const isNameColumn = header.column.id === "Name";
-                    const isAgeColumn = header.column.id === "Age";
-                    const column = tableMetadata.columns.find(
-                      (c) => c.name === header.column.id,
+        <table className="w-max border border-gray-200 text-sm">
+          <thead className="sticky z-40 border">
+            {tableInstance.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const isRowNumberColumn = header.column.id === "#";
+                  const isNameColumn = header.column.id === "Name";
+                  const isAgeColumn = header.column.id === "Age";
+                  const column = tableMetadata.columns.find(
+                    (c) => c.name === header.column.id,
+                  );
+
+                  // Check if this column is sorted
+                  const isSorted =
+                    viewConditions?.sort &&
+                    Object.keys(viewConditions.sort).includes(
+                      column?.name ?? "",
                     );
 
-                    // Check if this column is sorted
+                  // Check if this column is filtered
+                  const isFiltered =
+                    viewConditions?.filters &&
+                    Object.keys(viewConditions.filters).includes(
+                      column?.name ?? "",
+                    );
+
+                  return (
+                    <th
+                      key={header.id}
+                      className={`sticky top-0 z-0 border p-2 text-left ${
+                        isRowNumberColumn
+                          ? "left-0 z-50 w-16"
+                          : isNameColumn
+                            ? "left-16 z-50 w-48"
+                            : isAgeColumn
+                              ? "left-64 z-50 w-32"
+                              : "w-32"
+                      } ${isSorted ? "bg-blue-100" : "bg-gray-100"} ${
+                        isFiltered ? "bg-yellow-100" : ""
+                      } ${isSorted && isFiltered ? "bg-green-100" : ""}`}
+                    >
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      )}
+                    </th>
+                  );
+                })}
+                <th className="sticky top-0 w-12 border-b bg-gray-100 p-2 text-left">
+                  <AddColumnPopover
+                    newColumnName={newColumnName}
+                    setNewColumnName={setNewColumnName}
+                    newColumnType={newColumnType}
+                    setNewColumnType={setNewColumnType}
+                    onSubmit={handleCreateColumn}
+                    isCreating={isCreatingColumn}
+                  />
+                </th>
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {paddingTop > 0 && (
+              <tr>
+                <td style={{ height: `${paddingTop}px` }} />
+              </tr>
+            )}
+            {virtualRows.map((virtualRow) => {
+              const row = tableInstance.getRowModel().rows[virtualRow.index];
+              if (!row) return null;
+
+              return (
+                <tr key={row.id} data-index={virtualRow.index}>
+                  {row.getVisibleCells().map((cell) => {
+                    const isRowNumberColumn = cell.column.id === "#";
+                    const isNameColumn = cell.column.id === "Name";
+                    const isAgeColumn = cell.column.id === "Age";
+                    const cellData: Cell = row.getValue(cell.column.id);
+                    const column = tableMetadata.columns.find(
+                      (c) => c.name === cell.column.id,
+                    );
+
+                    const isDefaultColumn =
+                      isRowNumberColumn || isNameColumn || isAgeColumn;
+
+                    // Check if this column is sorted or filtered
                     const isSorted =
                       viewConditions?.sort &&
                       Object.keys(viewConditions.sort).includes(
                         column?.name ?? "",
                       );
-
-                    // Check if this column is filtered
                     const isFiltered =
                       viewConditions?.filters &&
                       Object.keys(viewConditions.filters).includes(
                         column?.name ?? "",
                       );
 
+                    // Find if this cell is a match
+                    const isMatch = matchingCells?.some(
+                      (mc) => mc.id === cellData.cellId,
+                    );
+                    // Find the index in matchPositions
+                    const matchIdx = matchPositions.findIndex(
+                      (mc) => mc.id === cellData.cellId,
+                    );
+
+                    const isCurrent = isMatch && matchIdx === currentMatchIndex;
+
                     return (
-                      <th
-                        key={header.id}
-                        className={`overflow-hidden border p-2 text-left ${
+                      <td
+                        key={cell.id}
+                        className={`z-0 overflow-hidden border p-2 focus-within:border-blue-500 ${
                           isRowNumberColumn
-                            ? "sticky left-0 z-50 w-16 bg-white"
+                            ? "sticky left-0 z-30"
                             : isNameColumn
-                              ? "sticky left-16 z-50 w-48"
+                              ? "sticky left-16 z-30"
                               : isAgeColumn
-                                ? "sticky left-64 z-50 w-32"
+                                ? "sticky left-64 z-30"
                                 : "w-32"
-                        } ${isSorted ? "bg-blue-100" : "bg-white"} ${
-                          isFiltered ? "bg-yellow-100" : ""
-                        } ${isSorted && isFiltered ? "bg-green-100" : ""}`}
+                        } ${
+                          isCurrent && isMatch
+                            ? "bg-orange-400 hover:bg-orange-400"
+                            : isMatch && !isCurrent
+                              ? "bg-yellow-200 hover:bg-yellow-200"
+                              : isSorted
+                                ? "bg-blue-50"
+                                : isFiltered
+                                  ? "bg-green-50"
+                                  : isDefaultColumn
+                                    ? "bg-gray-50"
+                                    : "bg-white"
+                        } `}
                       >
                         {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
+                          cell.column.columnDef.cell,
+                          cell.getContext(),
                         )}
-                      </th>
+                      </td>
                     );
                   })}
-                  <th className="w-12 border-b p-2 text-left">
-                    <AddColumnPopover
-                      newColumnName={newColumnName}
-                      setNewColumnName={setNewColumnName}
-                      newColumnType={newColumnType}
-                      setNewColumnType={setNewColumnType}
-                      onSubmit={handleCreateColumn}
-                      isCreating={isCreatingColumn}
-                    />
-                  </th>
                 </tr>
-              ))}
-            </thead>
-            <tbody>
-              {paddingTop > 0 && (
-                <tr>
-                  <td style={{ height: `${paddingTop}px` }} />
-                </tr>
-              )}
-              {virtualRows.map((virtualRow) => {
-                const row = tableInstance.getRowModel().rows[virtualRow.index];
-                if (!row) return null;
-
-                return (
-                  <tr key={row.id} data-index={virtualRow.index}>
-                    {row.getVisibleCells().map((cell) => {
-                      const isRowNumberColumn = cell.column.id === "#";
-                      const isNameColumn = cell.column.id === "Name";
-                      const isAgeColumn = cell.column.id === "Age";
-                      const cellData: Cell = row.getValue(cell.column.id);
-                      const column = tableMetadata.columns.find(
-                        (c) => c.name === cell.column.id,
-                      );
-
-                      // Check if this column is sorted or filtered
-                      const isSorted =
-                        viewConditions?.sort &&
-                        Object.keys(viewConditions.sort).includes(
-                          column?.name ?? "",
-                        );
-                      const isFiltered =
-                        viewConditions?.filters &&
-                        Object.keys(viewConditions.filters).includes(
-                          column?.name ?? "",
-                        );
-
-                      // Find if this cell is a match
-                      const isMatch = matchingCells?.some(
-                        (mc) => mc.id === cellData.cellId,
-                      );
-                      // Find the index in matchPositions
-                      const matchIdx = matchPositions.findIndex(
-                        (mc) => mc.id === cellData.cellId,
-                      );
-
-                      const isCurrent =
-                        isMatch && matchIdx === currentMatchIndex;
-
-                      return (
-                        <td
-                          key={cell.id}
-                          className={`overflow-hidden border-2 p-2 focus-within:border-blue-500 ${
-                            isRowNumberColumn
-                              ? "sticky left-0 z-20"
-                              : isNameColumn
-                                ? "sticky left-16 z-20"
-                                : isAgeColumn
-                                  ? "sticky left-64 z-20"
-                                  : "w-32"
-                          } ${isRowNumberColumn ? "" : "hover:bg-gray-100"} ${
-                            isCurrent && isMatch
-                              ? "bg-orange-400 hover:bg-orange-400"
-                              : ""
-                          } ${
-                            isMatch && !isCurrent
-                              ? "bg-yellow-200 hover:bg-yellow-200"
-                              : ""
-                          } ${isSorted ? "bg-blue-50" : ""} ${
-                            isFiltered ? "bg-green-50" : ""
-                          } `}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext(),
-                          )}
-                        </td>
-                      );
-                    })}
-                    <td className="w-12 border p-2" />
-                  </tr>
-                );
-              })}
-              {paddingBottom > 0 && (
-                <tr>
-                  <td style={{ height: `${paddingBottom}px` }} />
-                </tr>
-              )}
-              {isFetchingNextPage && (
-                <tr>
-                  <td
-                    colSpan={columns.length + 1}
-                    className="border bg-gray-50 p-4 text-center"
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <Spinner size={16} />
-                      <span className="text-sm text-gray-600">
-                        Loading more rows...
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              );
+            })}
+            {paddingBottom > 0 && (
+              <tr>
+                <td style={{ height: `${paddingBottom}px` }} />
+              </tr>
+            )}
+            {isFetchingNextPage && (
+              <tr>
+                <td
+                  colSpan={columns.length + 1}
+                  className="border bg-gray-50 p-4 text-center"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Spinner size={16} />
+                    <span className="text-sm text-gray-600">
+                      Loading more rows...
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Sticky Add Row Button */}

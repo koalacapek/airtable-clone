@@ -12,7 +12,13 @@ import {
 } from "~/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 
-const Navbar = () => {
+const Navbar = ({
+  isExpanded,
+  setIsExpanded,
+}: {
+  isExpanded: boolean;
+  setIsExpanded: (isExpanded: boolean) => void;
+}) => {
   const { data: session } = useSession();
   const router = useRouter();
 
@@ -28,6 +34,7 @@ const Navbar = () => {
           <Menu
             size={20}
             className="text-gray-2 opacity-50 hover:cursor-pointer hover:text-black hover:opacity-70"
+            onClick={() => setIsExpanded(!isExpanded)}
           />
 
           <Image src="/logo.png" alt="Airtable logo" width={102} height={60} />

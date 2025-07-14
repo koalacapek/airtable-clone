@@ -13,6 +13,11 @@ import {
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import Spinner from "./Spinner";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
 
 const ViewsSidebar = ({
   activeView,
@@ -30,10 +35,6 @@ const ViewsSidebar = ({
     { tableId: tableId! },
     { enabled: !!tableId },
   );
-
-  // useEffect(() => {
-  //   console.log(tableId, views);
-  // }, [tableId, views]);
 
   // Auto-select the first view if no view is currently selected or when table changes
   useEffect(() => {
@@ -110,54 +111,60 @@ const ViewsSidebar = ({
           : "pointer-events-none w-0 -translate-x-full opacity-0"
       }`}
     >
-      <div
-        onClick={() => setIsCreating(true)}
-        className="mb-3 flex items-center gap-x-2 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200"
-      >
-        <Plus size={14} strokeWidth={1.5} />
-        <h3 className="text-xs text-gray-900">Create new...</h3>
-      </div>
-
-      {isCreating && (
-        <div className="mb-3 space-y-2">
-          <Input
-            placeholder="View name"
-            value={newViewName}
-            onChange={(e) => setNewViewName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleCreateView();
-              } else if (e.key === "Escape") {
-                setIsCreating(false);
-                setNewViewName("");
-              }
-            }}
-            className="h-8 text-sm"
-            autoFocus
-          />
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={handleCreateView}
-              disabled={isCreatingView || !newViewName.trim()}
-              className="h-6 text-xs"
-            >
-              {isCreatingView ? <Spinner size={12} /> : "Create"}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setIsCreating(false);
-                setNewViewName("");
-              }}
-              className="h-6 text-xs"
-            >
-              Cancel
-            </Button>
+      <Popover open={isCreating} onOpenChange={setIsCreating}>
+        <PopoverTrigger>
+          <div
+            onClick={() => setIsCreating(true)}
+            className="mb-3 flex items-center gap-x-2 rounded-sm p-2 hover:cursor-pointer"
+          >
+            <Plus size={14} strokeWidth={1.5} />
+            <h3 className="text-xs text-gray-900">Create new...</h3>
           </div>
-        </div>
-      )}
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-64 space-y-2"
+          onInteractOutside={(e) => e.preventDefault()}
+        >
+          <div className="flex flex-col space-y-3">
+            <Input
+              placeholder="View name"
+              value={newViewName}
+              onChange={(e) => setNewViewName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleCreateView();
+                } else if (e.key === "Escape") {
+                  setIsCreating(false);
+                  setNewViewName("");
+                }
+              }}
+              className="h-8 text-sm"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={handleCreateView}
+                disabled={isCreatingView || !newViewName.trim()}
+                className="h-6 text-xs hover:cursor-pointer"
+              >
+                {isCreatingView ? <Spinner size={12} /> : "Create"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsCreating(false);
+                  setNewViewName("");
+                }}
+                className="h-6 text-xs hover:cursor-pointer"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-4">

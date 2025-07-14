@@ -16,6 +16,7 @@ const SearchTableButton = ({
   onNextMatch,
   onPrevMatch,
   activeTab,
+  activeView,
 }: ISearchTableButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [localSearchValue, setLocalSearchValue] = useState("");
@@ -25,10 +26,11 @@ const SearchTableButton = ({
     onUpdate(localSearchValue.trim());
   }, [localSearchValue, onUpdate]);
 
-  // reset search value when active tab changes
+  // reset search value when active tab or view changes and make sure the popover is closed
   useEffect(() => {
     setLocalSearchValue("");
-  }, [activeTab]);
+    setIsOpen(false);
+  }, [activeTab, activeView]);
 
   const handleClearSearch = () => {
     setLocalSearchValue("");
@@ -53,9 +55,19 @@ const SearchTableButton = ({
           <p className="text-xs">Search</p>
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-80 space-y-4">
+      <PopoverContent
+        className="w-80 space-y-4"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <div className="space-y-2">
-          <label className="text-sm font-medium">Search all fields</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Search all fields</label>
+            <X
+              size={16}
+              onClick={handleClearSearch}
+              className="hover:cursor-pointer"
+            />
+          </div>
           <div className="relative">
             <Input
               className="w-full pr-8"
@@ -74,7 +86,7 @@ const SearchTableButton = ({
             )}
           </div>
 
-          {hasSearchValue && totalMatches > 0 && (
+          {hasSearchValue && totalMatches > 0 ? (
             <div className="flex items-center justify-between">
               <p className="text-xs text-gray-500">
                 {currentMatchIndex + 1} of {totalMatches}
@@ -97,6 +109,12 @@ const SearchTableButton = ({
                   <ChevronDown size={12} />
                 </Button>
               </div>
+            </div>
+          ) : (
+            <div className="flex items-center">
+              {localSearchValue.length !== 0 && (
+                <p className="text-xs text-gray-500">No results found</p>
+              )}
             </div>
           )}
 
