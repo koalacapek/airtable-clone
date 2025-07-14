@@ -209,6 +209,7 @@ const OptionsTab = ({
           currentMatchIndex={currentMatchIndex}
           onNextMatch={onNextMatch}
           onPrevMatch={onPrevMatch}
+          activeView={activeView}
         />
       </div>
     </div>

@@ -16,6 +16,7 @@ const SearchTableButton = ({
   onNextMatch,
   onPrevMatch,
   activeTab,
+  activeView,
 }: ISearchTableButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [localSearchValue, setLocalSearchValue] = useState("");
@@ -28,7 +29,7 @@ const SearchTableButton = ({
   // reset search value when active tab changes
   useEffect(() => {
     setLocalSearchValue("");
-  }, [activeTab]);
+  }, [activeTab, activeView]);
 
   const handleClearSearch = () => {
     setLocalSearchValue("");
@@ -53,7 +54,10 @@ const SearchTableButton = ({
           <p className="text-xs">Search</p>
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-80 space-y-4">
+      <PopoverContent
+        className="w-80 space-y-4"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <div className="space-y-2">
           <label className="text-sm font-medium">Search all fields</label>
           <div className="relative">
