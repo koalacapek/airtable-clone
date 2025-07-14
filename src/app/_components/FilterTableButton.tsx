@@ -212,7 +212,7 @@ const FilterTableButton = ({
           );
         })()}
       </PopoverTrigger>
-      <PopoverContent className="w-90 space-y-4">
+      <PopoverContent className="w-full space-y-4">
         {/* Render all filter input sets */}
         {filterInputs.map((input, idx) => {
           const selectedColumn = columns.find(
@@ -223,18 +223,15 @@ const FilterTableButton = ({
             ? textOperators
             : numberOperators;
           return (
-            <div
-              key={idx}
-              className="mb-2 flex w-full items-center justify-center gap-x-2"
-            >
-              <div className="flex flex-1 flex-col space-y-1">
+            <div key={idx} className="mb-2 flex w-full">
+              <div className="flex flex-1 flex-col">
                 <Select
                   value={input.filterBy}
                   onValueChange={(val) =>
                     handleFilterInputChange(idx, "filterBy", val)
                   }
                 >
-                  <SelectTrigger className="w-full p-1 text-sm">
+                  <SelectTrigger className="w-30 p-1 text-sm">
                     {input.filterBy ?? "Column"}
                   </SelectTrigger>
                   <SelectContent>
@@ -256,7 +253,7 @@ const FilterTableButton = ({
                     handleFilterInputChange(idx, "filterOperator", val)
                   }
                 >
-                  <SelectTrigger className="w-full border p-1 text-sm">
+                  <SelectTrigger className="w-30 border p-1 text-sm">
                     {operatorOptions.find(
                       (op) => op.value === input.filterOperator,
                     )?.label ?? "Operator"}

@@ -382,6 +382,9 @@ const Table = ({
                       (c) => c.name === cell.column.id,
                     );
 
+                    const isDefaultColumn =
+                      isRowNumberColumn || isNameColumn || isAgeColumn;
+
                     // Check if this column is sorted or filtered
                     const isSorted =
                       viewConditions?.sort &&
@@ -416,7 +419,7 @@ const Table = ({
                               : isAgeColumn
                                 ? "sticky left-64 z-30"
                                 : "w-32"
-                        } ${
+                        } ${isDefaultColumn ? "bg-white" : "bg-transparent"}} } ${
                           isCurrent && isMatch
                             ? "bg-orange-400 hover:bg-orange-400"
                             : isMatch && !isCurrent
