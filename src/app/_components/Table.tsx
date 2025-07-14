@@ -300,7 +300,7 @@ const Table = ({
         className="flex-1 overflow-auto"
         onScroll={(e) => handleScroll(e.currentTarget)}
       >
-        <table className="relative w-max border border-gray-200 text-sm">
+        <table className="w-max border border-gray-200 text-sm">
           <thead className="sticky -top-0.5 z-40 border">
             {tableInstance.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
@@ -348,7 +348,7 @@ const Table = ({
                     </th>
                   );
                 })}
-                <th className="w-12 border-b p-2 text-left">
+                <th className="sticky top-0 w-12 border-b bg-gray-100 p-2 text-left">
                   <AddColumnPopover
                     newColumnName={newColumnName}
                     setNewColumnName={setNewColumnName}
@@ -410,11 +410,11 @@ const Table = ({
                         key={cell.id}
                         className={`z-0 overflow-hidden border p-2 focus-within:border-blue-500 ${
                           isRowNumberColumn
-                            ? "sticky left-0 z-50"
+                            ? "sticky left-0 z-30"
                             : isNameColumn
-                              ? "sticky left-16 z-50"
+                              ? "sticky left-16 z-30"
                               : isAgeColumn
-                                ? "sticky left-64 z-50"
+                                ? "sticky left-64 z-30"
                                 : "w-32"
                         } ${
                           isCurrent && isMatch
