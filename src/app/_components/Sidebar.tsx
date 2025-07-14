@@ -35,7 +35,7 @@ export default function Sidebar({ isExpanded }: { isExpanded: boolean }) {
 
   return (
     <div
-      className={`border-gray-1 flex flex-col justify-between border-r px-3 pt-3 pb-5 transition-[width] ${
+      className={`border-gray-1 flex flex-col justify-between border-r px-3 pt-3 pb-5 transition-all duration-300 ${
         isExpanded ? "w-75" : "w-16"
       }`}
     >
