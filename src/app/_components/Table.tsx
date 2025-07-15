@@ -335,7 +335,7 @@ const Table = ({
                   return (
                     <th
                       key={header.id}
-                      className={`sticky top-0 border-t border-r border-b p-2 text-left ${
+                      className={`sticky top-0 z-0 border-t border-r border-b p-2 text-left ${
                         isRowNumberColumn
                           ? "left-0 z-50 w-16"
                           : isNameColumn
@@ -425,11 +425,11 @@ const Table = ({
                         key={cell.id}
                         className={`z-0 overflow-hidden border-r border-b p-2 focus-within:border-blue-500 hover:bg-gray-100 ${
                           isRowNumberColumn
-                            ? "sticky left-0 z-40"
+                            ? "sticky left-0 z-30"
                             : isNameColumn
-                              ? "sticky left-16 z-40"
+                              ? "sticky left-16 z-30"
                               : isAgeColumn && !isNameHidden
-                                ? "sticky left-64 z-40"
+                                ? "sticky left-64 z-30"
                                 : isNameHidden
                                   ? "sticky left-16"
                                   : "w-32"
