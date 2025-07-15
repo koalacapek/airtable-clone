@@ -26,7 +26,6 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   >([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [openView, setOpenView] = useState(true);
-  // Store active view per table with localStorage persistence
 
   // Load persisted state from localStorage on mount
   useEffect(() => {

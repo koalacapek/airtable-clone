@@ -2,10 +2,18 @@
 
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { api } from "~/trpc/react";
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus, Trash } from "lucide-react";
 import type { ITableTabProps } from "~/type";
+import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
+  const [open, setOpen] = useState(false);
   const utils = api.useUtils();
 
   // Fetch tables
@@ -42,6 +50,15 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
       await utils.table.getAllByBase.invalidate({ baseId }),
   });
 
+  // Delete table
+  const { mutate: deleteTable } = api.table.deleteTable.useMutation({
+    onMutate: async () => {
+      await utils.table.getAllByBase.cancel({ baseId });
+    },
+    onSettled: async () =>
+      await utils.table.getAllByBase.invalidate({ baseId }),
+  });
+
   const handleAddTable = () => {
     createTable({ baseId });
   };
@@ -50,13 +67,61 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
     <div className="w-full">
       <Tabs value={active ?? tables?.[0]?.id} onValueChange={setActive}>
         <TabsList className="bg-orange-1 flex w-full justify-start overflow-x-auto rounded-none p-0">
-          {tables?.map((table) => (
+          {tables?.map((table, index) => (
             <TabsTrigger
               key={table.id}
               value={table.id}
               className="text-gray-2 h-full max-w-fit rounded-none px-4 pt-3 pb-2 text-xs font-medium hover:cursor-pointer hover:bg-black/10 data-[state=active]:rounded-t-sm data-[state=active]:text-black"
             >
-              {table.name}
+              <div className="flex items-center justify-center gap-2">
+                <span>Table {index + 1}</span>
+
+                {/* Dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className="flex items-center justify-center rounded p-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpen(!open);
+                      }}
+                    >
+                      <ChevronDown size={16} strokeWidth={1.5} />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem
+                      disabled={tables?.length === 1}
+                      className={`flex w-full items-center gap-x-3 ${
+                        tables?.length === 1
+                          ? "cursor-not-allowed opacity-50"
+                          : "hover:cursor-pointer"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (tables?.length !== 1) {
+                          deleteTable({ id: table.id });
+                        }
+                      }}
+                    >
+                      <Trash
+                        size={12}
+                        strokeWidth={1.5}
+                        color={tables?.length === 1 ? "#9ca3af" : "red"}
+                      />
+                      <p
+                        className={`text-xs ${
+                          tables?.length === 1
+                            ? "text-gray-400"
+                            : "text-red-500"
+                        }`}
+                      >
+                        Delete
+                      </p>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </TabsTrigger>
           ))}
 

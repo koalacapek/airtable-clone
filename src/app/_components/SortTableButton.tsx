@@ -46,32 +46,77 @@ const SortTableButton = ({
 
   // Parse existing sort conditions
   const existingSorts = sortConditions
-    ? Object.entries(sortConditions).map(([columnName, config]) => {
-        const sortConfig = config as { direction: "asc" | "desc" };
-        return {
-          columnName,
-          direction: sortConfig.direction,
-        };
-      })
+    ? Object.entries(sortConditions)
+        .sort(
+          ([, a], [, b]) =>
+            ((a as { order?: number }).order ?? 0) -
+            ((b as { order?: number }).order ?? 0),
+        )
+        .map(([columnName, config]) => {
+          const sortConfig = config as { direction: "asc" | "desc" };
+          return {
+            columnName,
+            direction: sortConfig.direction,
+          };
+        })
     : [];
 
   const handleRemoveSort = (columnNameToRemove: string) => {
-    if (sortConditions) {
-      const newSortConditions = { ...sortConditions };
-      delete newSortConditions[columnNameToRemove];
-      onUpdate(newSortConditions);
-    }
+    if (!sortConditions) return;
+
+    // Rebuild the object without the removed column and re-index the `order` fields
+    const remaining = Object.entries(sortConditions)
+      .filter(([col]) => col !== columnNameToRemove)
+      .sort(
+        ([, a], [, b]) =>
+          ((a as { order?: number }).order ?? 0) -
+          ((b as { order?: number }).order ?? 0),
+      );
+
+    const reordered: Record<string, unknown> = {};
+    remaining.forEach(([col, cfg], idx) => {
+      reordered[col] = {
+        ...(cfg as { direction: "asc" | "desc" }),
+        order: idx,
+      };
+    });
+
+    onUpdate(reordered);
   };
 
   const handleAddSort = () => {
-    if (sortBy) {
-      const newSortConditions = {
-        ...sortConditions,
-        [sortBy]: { direction: sortOrder },
-      };
-      onUpdate(newSortConditions);
-      setOpen(false);
+    if (!sortBy) return;
+
+    // Determine next order index
+    const existingEntries = sortConditions
+      ? Object.entries(sortConditions)
+      : [];
+    const nextOrder = existingEntries.length;
+    let isExisting = false;
+
+    const newSortConditions: Record<string, unknown> = {};
+
+    existingEntries.forEach(([col, cfg], idx) => {
+      const currentOrder = (cfg as { order?: number }).order ?? idx;
+      if (col === sortBy) {
+        // Update direction, keep current order
+        newSortConditions[col] = { direction: sortOrder, order: currentOrder };
+        isExisting = true;
+      } else {
+        newSortConditions[col] = {
+          ...(cfg as { direction: "asc" | "desc" }),
+          order: currentOrder,
+        };
+      }
+    });
+
+    // If it's a completely new column, append at the end
+    if (!isExisting) {
+      newSortConditions[sortBy] = { direction: sortOrder, order: nextOrder };
     }
+
+    onUpdate(newSortConditions);
+    setOpen(false);
   };
 
   // Find the selected column object

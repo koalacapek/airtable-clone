@@ -299,7 +299,7 @@ const Table = ({
         className="flex-1 overflow-auto"
         onScroll={(e) => handleScroll(e.currentTarget)}
       >
-        <table className="w-max border border-gray-200 text-sm">
+        <table className="w-max border-separate border-spacing-0 border border-gray-200 text-sm">
           <thead className="sticky z-40 border">
             {tableInstance.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
@@ -335,7 +335,7 @@ const Table = ({
                   return (
                     <th
                       key={header.id}
-                      className={`sticky top-0 z-0 border p-2 text-left ${
+                      className={`sticky top-0 border-t border-r border-b p-2 text-left ${
                         isRowNumberColumn
                           ? "left-0 z-50 w-16"
                           : isNameColumn
@@ -356,7 +356,7 @@ const Table = ({
                     </th>
                   );
                 })}
-                <th className="sticky top-0 w-12 border-b bg-gray-100 p-2 text-left">
+                <th className="sticky top-0 w-12 border-t border-r border-b bg-gray-100 p-2 text-left">
                   <AddColumnPopover
                     newColumnName={newColumnName}
                     setNewColumnName={setNewColumnName}
@@ -397,9 +397,6 @@ const Table = ({
                       ? false
                       : true;
 
-                    const isDefaultColumn =
-                      isRowNumberColumn || isNameColumn || isAgeColumn;
-
                     // Check if this column is sorted or filtered
                     const isSorted =
                       viewConditions?.sort &&
@@ -426,13 +423,13 @@ const Table = ({
                     return (
                       <td
                         key={cell.id}
-                        className={`z-0 overflow-hidden border p-2 focus-within:border-blue-500 ${
+                        className={`z-0 overflow-hidden border-r border-b p-2 focus-within:border-blue-500 hover:bg-gray-100 ${
                           isRowNumberColumn
-                            ? "sticky left-0 z-30"
+                            ? "sticky left-0 z-40"
                             : isNameColumn
-                              ? "sticky left-16 z-30"
+                              ? "sticky left-16 z-40"
                               : isAgeColumn && !isNameHidden
-                                ? "sticky left-64 z-30"
+                                ? "sticky left-64 z-40"
                                 : isNameHidden
                                   ? "sticky left-16"
                                   : "w-32"
@@ -445,9 +442,7 @@ const Table = ({
                                 ? "bg-blue-50"
                                 : isFiltered
                                   ? "bg-green-50"
-                                  : isDefaultColumn
-                                    ? "bg-gray-50"
-                                    : "bg-white"
+                                  : "bg-white"
                         } `}
                       >
                         {flexRender(
