@@ -52,7 +52,7 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
 
   // Delete table
   const { mutate: deleteTable } = api.table.deleteTable.useMutation({
-    onMutate: async ({ id }) => {
+    onMutate: async () => {
       await utils.table.getAllByBase.cancel({ baseId });
     },
     onSettled: async () =>
