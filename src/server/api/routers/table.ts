@@ -200,85 +200,100 @@ export const tableRouter = createTRPCRouter({
         where: { tableId },
       });
 
-      // If we have sorting, use raw SQL for efficient global sorting
       if (sort && Object.keys(sort).length > 0) {
-        const [columnName, sortConfig] = Object.entries(sort)[0] as [
+        // Support multi-column sorting instead of only the first sort key
+        const rawEntries = Object.entries(sort) as [
           string,
-          { direction: "asc" | "desc" },
-        ];
-        const sortColumn = columns.find((col) => col.name === columnName);
+          { direction: "asc" | "desc"; order?: number },
+        ][];
 
-        if (sortColumn) {
-          // Build the SQL query for global sorting
-          let sql = `
-            SELECT r.id, r."tableId", c.value as sort_value
-            FROM "Row" r
-            LEFT JOIN "Cell" c ON r.id = c."rowId" AND c."columnId" = $1
-            WHERE r."tableId" = $2
-          `;
+        // Sort entries by the explicit `order` property if provided, otherwise by original insertion index
+        const sortEntries = rawEntries
+          .slice() // copy to avoid mutating original
+          .sort((a, b) => {
+            const orderA =
+              (a[1] as { order?: number }).order ?? rawEntries.indexOf(a);
+            const orderB =
+              (b[1] as { order?: number }).order ?? rawEntries.indexOf(b);
+            return orderA - orderB;
+          }) as [string, { direction: "asc" | "desc"; order?: number }][];
 
-          const params: (string | number | null)[] = [sortColumn.id, tableId];
-          let paramIndex = 3;
+        // Resolve the Prisma column objects for each sorted entry
+        const sortColumns = sortEntries
+          .map(([name, cfg]) => {
+            const col = columns.find((c) => c.name === name);
+            if (!col) return null;
+            return { column: col, direction: cfg.direction } as const;
+          })
+          .filter(Boolean) as {
+          column: (typeof columns)[number];
+          direction: "asc" | "desc";
+        }[];
 
-          // Add filter conditions to the SQL query
+        if (sortColumns.length > 0) {
+          // Build the SELECT part – we alias the first column as sort_value for cursor handling
+          let sql = `\n            SELECT r.id, r."tableId", c0.value as sort_value`;
+          if (sortColumns.length > 1) {
+            for (let i = 1; i < sortColumns.length; i++) {
+              sql += `, c${i}.value as sort_value_${i}`;
+            }
+          }
+          sql += `\n            FROM "Row" r`;
+
+          // Build the JOINs for each sort column and collect params for their columnIds
+          const params: (string | number | null)[] = [];
+          sortColumns.forEach(({ column }, idx) => {
+            sql += ` LEFT JOIN "Cell" c${idx} ON r.id = c${idx}."rowId" AND c${idx}."columnId" = $${params.length + 1}`;
+            params.push(column.id);
+          });
+
+          // Table filter
+          sql += ` WHERE r."tableId" = $${params.length + 1}`;
+          params.push(tableId);
+
+          // The next available placeholder index
+          let paramIndex = params.length + 1;
+
+          // Optional filters
           if (filters && Object.keys(filters).length > 0) {
-            const {
-              condition: filterCondition,
-              newParamIndex,
-              moreParams,
-            } = processFilters(filters, columns, paramIndex);
-
-            if (filterCondition) {
-              sql += ` AND ${filterCondition}`;
+            const { condition, newParamIndex, moreParams } = processFilters(
+              filters,
+              columns,
+              paramIndex,
+            );
+            if (condition) {
+              sql += ` AND ${condition}`;
               params.push(...moreParams);
               paramIndex = newParamIndex;
             }
           }
 
-          // Add cursor condition for pagination
+          // Cursor based on the PRIMARY (first) sort column – this guarantees deterministic
+          // paging while still allowing secondary/tertiary columns for tie-breaking.
+          const primarySort = sortColumns[0];
           if (cursor) {
-            const sortDirection =
-              sortConfig.direction === "asc" ? "ASC" : "DESC";
-
+            const sortDir = primarySort?.direction === "asc" ? "ASC" : "DESC";
             if (cursor.value !== null) {
-              if (sortColumn.type === "NUMBER") {
-                // For number columns: (sort_value, id) > (cursor_value, cursor_id)
-                if (sortDirection === "ASC") {
-                  sql += ` AND (
-                    CAST(COALESCE(c.value, '0') AS DECIMAL) > CAST($${paramIndex} AS DECIMAL) OR 
-                    (CAST(COALESCE(c.value, '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})
-                  )`;
+              if (primarySort?.column.type === "NUMBER") {
+                if (sortDir === "ASC") {
+                  sql += ` AND (\n                    CAST(COALESCE(c0.value, '0') AS DECIMAL) > CAST($${paramIndex} AS DECIMAL) OR\n                    (CAST(COALESCE(c0.value, '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})\n                  )`;
                 } else {
-                  sql += ` AND (
-                    CAST(COALESCE(c.value, '0') AS DECIMAL) < CAST($${paramIndex} AS DECIMAL) OR 
-                    (CAST(COALESCE(c.value, '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})
-                  )`;
+                  sql += ` AND (\n                    CAST(COALESCE(c0.value, '0') AS DECIMAL) < CAST($${paramIndex} AS DECIMAL) OR\n                    (CAST(COALESCE(c0.value, '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})\n                  )`;
                 }
-                params.push(cursor.value, cursor.id);
-                paramIndex += 2;
               } else {
-                // For text columns: (sort_value, id) > (cursor_value, cursor_id)
-                if (sortDirection === "ASC") {
-                  sql += ` AND (
-                    COALESCE(c.value, '') > $${paramIndex} OR 
-                    (COALESCE(c.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})
-                  )`;
+                if (sortDir === "ASC") {
+                  sql += ` AND (\n                    COALESCE(c0.value, '') > $${paramIndex} OR\n                    (COALESCE(c0.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})\n                  )`;
                 } else {
-                  sql += ` AND (
-                    COALESCE(c.value, '') < $${paramIndex} OR 
-                    (COALESCE(c.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})
-                  )`;
+                  sql += ` AND (\n                    COALESCE(c0.value, '') < $${paramIndex} OR\n                    (COALESCE(c0.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})\n                  )`;
                 }
-                params.push(cursor.value, cursor.id);
-                paramIndex += 2;
               }
+              params.push(cursor.value, cursor.id);
+              paramIndex += 2;
             } else {
-              // If cursor.value is null, we need to handle null values properly
-              if (sortDirection === "ASC") {
-                // For ASC with null cursor, we want non-null values or null values with id > cursor.id
-                sql += ` AND (c.value IS NOT NULL OR r.id > $${paramIndex})`;
+              // Handle null cursor values
+              if (sortDir === "ASC") {
+                sql += ` AND (c0.value IS NOT NULL OR r.id > $${paramIndex})`;
               } else {
-                // For DESC with null cursor, we want values < null (which doesn't exist) or null values with id > cursor.id
                 sql += ` AND r.id > $${paramIndex}`;
               }
               params.push(cursor.id);
@@ -286,21 +301,24 @@ export const tableRouter = createTRPCRouter({
             }
           }
 
-          // Add sorting with consistent tie-breaking
-          const sortDirection = sortConfig.direction.toUpperCase();
-          if (sortColumn.type === "NUMBER") {
-            // For number columns, cast to numeric for proper numerical sorting
-            sql += ` ORDER BY CAST(COALESCE(c.value, '0') AS DECIMAL) ${sortDirection === "ASC" ? "ASC" : "DESC"}, r.id ASC`;
-          } else {
-            // For text columns, use string sorting
-            sql += ` ORDER BY COALESCE(c.value, '') ${sortDirection === "ASC" ? "ASC" : "DESC"}, r.id ASC`;
-          }
+          // ORDER BY clauses for all sort columns, with row.id as final deterministic tiebreaker
+          const orderClauses: string[] = sortColumns.map(
+            ({ column, direction }, idx) => {
+              const dir = direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
+              if (column.type === "NUMBER") {
+                return `CAST(COALESCE(c${idx}.value, '0') AS DECIMAL) ${dir}`;
+              }
+              return `COALESCE(c${idx}.value, '') ${dir}`;
+            },
+          );
+          orderClauses.push("r.id ASC");
+          sql += ` ORDER BY ${orderClauses.join(", ")}`;
 
-          // Add limit
+          // Limit
           sql += ` LIMIT $${paramIndex}`;
-          params.push(limit + 1); // Get one extra to check if there are more
+          params.push(limit + 1);
 
-          // Execute the query to get sorted row IDs
+          // Execute query
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
           const sortedRows = (await ctx.db.$queryRawUnsafe(sql, ...params)) as {
             id: string;
@@ -308,7 +326,6 @@ export const tableRouter = createTRPCRouter({
             sort_value: string | null;
           }[];
 
-          // Check if there are more rows
           const hasMore = sortedRows.length > limit;
           const resultRowIds = sortedRows.slice(0, limit).map((r) => r.id);
 
@@ -316,10 +333,9 @@ export const tableRouter = createTRPCRouter({
             return {
               rows: [],
               nextCursor: undefined,
-            };
+            } as const;
           }
 
-          // Now get full row data with all cells
           const fullRows = await ctx.db.row.findMany({
             where: {
               id: { in: resultRowIds },
@@ -335,25 +351,23 @@ export const tableRouter = createTRPCRouter({
             },
           });
 
-          // Maintain the sorted order
           const orderedRows = resultRowIds.map(
             (id) => fullRows.find((row) => row.id === id)!,
           );
 
-          // Determine next cursor using the last row from the ORIGINAL query result
           let nextCursor: typeof input.cursor | undefined = undefined;
           if (hasMore) {
-            const lastRowFromQuery = sortedRows[limit - 1]; // Use the last row before we sliced
+            const lastRow = sortedRows[limit - 1];
             nextCursor = {
-              id: lastRowFromQuery?.id ?? "",
-              value: lastRowFromQuery?.sort_value ?? null,
+              id: lastRow?.id ?? "",
+              value: lastRow?.sort_value ?? null,
             };
           }
 
           return {
             rows: orderedRows,
             nextCursor,
-          };
+          } as const;
         }
       }
 
