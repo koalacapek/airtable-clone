@@ -285,9 +285,9 @@ export const tableRouter = createTRPCRouter({
             if (cursor.value !== null) {
               if (primarySort?.column.type === "NUMBER") {
                 if (sortDir === "ASC") {
-                  sql += ` AND (\n                    CAST(COALESCE(c0.value, '0') AS DECIMAL) > CAST($${paramIndex} AS DECIMAL) OR\n                    (CAST(COALESCE(c0.value, '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})\n                  )`;
+                  sql += ` AND (\n                    CAST(COALESCE(NULLIF(c0.value, ''), '0') AS DECIMAL) > CAST($${paramIndex} AS DECIMAL) OR\n                    (CAST(COALESCE(NULLIF(c0.value, ''), '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})\n                  )`;
                 } else {
-                  sql += ` AND (\n                    CAST(COALESCE(c0.value, '0') AS DECIMAL) < CAST($${paramIndex} AS DECIMAL) OR\n                    (CAST(COALESCE(c0.value, '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})\n                  )`;
+                  sql += ` AND (\n                    CAST(COALESCE(NULLIF(c0.value, ''), '0') AS DECIMAL) < CAST($${paramIndex} AS DECIMAL) OR\n                    (CAST(COALESCE(NULLIF(c0.value, ''), '0') AS DECIMAL) = CAST($${paramIndex} AS DECIMAL) AND r.id > $${paramIndex + 1})\n                  )`;
                 }
               } else {
                 if (sortDir === "ASC") {
@@ -315,7 +315,7 @@ export const tableRouter = createTRPCRouter({
             ({ column, direction }, idx) => {
               const dir = direction.toUpperCase() === "ASC" ? "ASC" : "DESC";
               if (column.type === "NUMBER") {
-                return `CAST(COALESCE(c${idx}.value, '0') AS DECIMAL) ${dir}`;
+                return `CAST(COALESCE(NULLIF(c${idx}.value, ''), '0') AS DECIMAL) ${dir}`;
               }
               return `COALESCE(c${idx}.value, '') ${dir}`;
             },
