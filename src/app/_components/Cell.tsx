@@ -29,7 +29,7 @@ const Cell = ({
     <div className="relative w-full overflow-hidden">
       <input
         type={colType === ColumnType.NUMBER ? "number" : "text"}
-        className="w-full truncate bg-transparent outline-none focus:relative focus:z-[9999]"
+        className="w-full truncate bg-transparent outline-none focus:relative focus:z-0"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={handleBlur}
