@@ -217,7 +217,7 @@ export const handleChooseFilterQuery = (
                     SELECT 1 FROM "Cell" fc 
                     WHERE fc."rowId" = r.id 
                     AND fc."columnId" = $${paramIndex} 
-                    AND CAST(COALESCE(fc.value, '0') AS DECIMAL) > CAST($${paramIndex + 1} AS DECIMAL)
+                    AND CAST(COALESCE(NULLIF(fc.value, ''), '0') AS DECIMAL) > CAST($${paramIndex + 1} AS DECIMAL)
                   )`;
       } else {
         condition = `EXISTS (
@@ -237,7 +237,7 @@ export const handleChooseFilterQuery = (
                     SELECT 1 FROM "Cell" fc 
                     WHERE fc."rowId" = r.id 
                     AND fc."columnId" = $${paramIndex} 
-                    AND CAST(COALESCE(fc.value, '0') AS DECIMAL) < CAST($${paramIndex + 1} AS DECIMAL)
+                    AND CAST(COALESCE(NULLIF(fc.value, ''), '0') AS DECIMAL) < CAST($${paramIndex + 1} AS DECIMAL)
                   )`;
       } else {
         condition = `EXISTS (
