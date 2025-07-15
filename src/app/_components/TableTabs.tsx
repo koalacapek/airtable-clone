@@ -78,42 +78,46 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
 
                 {/* Dropdown */}
                 <DropdownMenu>
-                  <DropdownMenuTrigger>
-                    <ChevronDown
-                      size={16}
-                      strokeWidth={1.5}
-                      onClick={() => setOpen(!open)}
-                    />
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className="flex items-center justify-center rounded p-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpen(!open);
+                      }}
+                    >
+                      <ChevronDown size={16} strokeWidth={1.5} />
+                    </div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem asChild>
-                      <button
-                        disabled={tables?.length === 1}
-                        className={`flex w-full items-center gap-x-3 ${
-                          tables?.length === 1
-                            ? "cursor-not-allowed opacity-50"
-                            : "hover:cursor-pointer"
-                        }`}
-                        onClick={(e) => {
-                          e.stopPropagation();
+                    <DropdownMenuItem
+                      disabled={tables?.length === 1}
+                      className={`flex w-full items-center gap-x-3 ${
+                        tables?.length === 1
+                          ? "cursor-not-allowed opacity-50"
+                          : "hover:cursor-pointer"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (tables?.length !== 1) {
                           deleteTable({ id: table.id });
-                        }}
+                        }
+                      }}
+                    >
+                      <Trash
+                        size={12}
+                        strokeWidth={1.5}
+                        color={tables?.length === 1 ? "#9ca3af" : "red"}
+                      />
+                      <p
+                        className={`text-xs ${
+                          tables?.length === 1
+                            ? "text-gray-400"
+                            : "text-red-500"
+                        }`}
                       >
-                        <Trash
-                          size={12}
-                          strokeWidth={1.5}
-                          color={tables?.length === 1 ? "#9ca3af" : "red"}
-                        />
-                        <p
-                          className={`text-xs ${
-                            tables?.length === 1
-                              ? "text-gray-400"
-                              : "text-red-500"
-                          }`}
-                        >
-                          Delete
-                        </p>
-                      </button>
+                        Delete
+                      </p>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

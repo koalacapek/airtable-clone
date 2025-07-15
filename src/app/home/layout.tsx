@@ -9,7 +9,7 @@ export default function HomeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   return (
     <div className="flex h-screen flex-col">
       <Navbar isExpanded={isExpanded} setIsExpanded={setIsExpanded} />
