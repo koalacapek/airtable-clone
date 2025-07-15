@@ -48,7 +48,7 @@ const HideFieldsButton = ({
           </p>
         </div>
       </PopoverTrigger>
-      <PopoverContent className="w-90 space-y-4">
+      <PopoverContent className="w-full space-y-4">
         {/* List all columns */}
         {columnsData?.columns.map(
           (column) =>

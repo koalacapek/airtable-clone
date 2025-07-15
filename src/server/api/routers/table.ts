@@ -132,6 +132,15 @@ export const tableRouter = createTRPCRouter({
       return table;
     }),
 
+  deleteTable: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.table.delete({
+        where: { id: input.id, base: { userId: ctx.session.user.id } },
+      });
+      return { success: true };
+    }),
+
   getTableWithData: protectedProcedure
     .input(z.object({ tableId: z.string() }))
     .query(async ({ ctx, input }) => {
