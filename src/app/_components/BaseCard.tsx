@@ -22,6 +22,28 @@ const BaseCard = (base: IBase) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const utils = api.useUtils();
 
+  // Pastel color palette for avatar background
+  const pastelColors = [
+    "bg-red-200/80",
+    "bg-orange-200/80",
+    "bg-amber-200/80",
+    "bg-lime-200/80",
+    "bg-emerald-200/80",
+    "bg-cyan-200/80",
+    "bg-sky-200/80",
+    "bg-indigo-200/80",
+    "bg-fuchsia-200/80",
+    "bg-rose-200/80",
+  ] as const;
+
+  // Prefer color coming from DB, otherwise fall back to deterministic palette pick
+  const avatarColor =
+    base.color ??
+    pastelColors[
+      Array.from(base.id).reduce((acc, char) => acc + char.charCodeAt(0), 0) %
+        pastelColors.length
+    ];
+
   useEffect(() => {
     if (isEditing) {
       setTimeout(() => {
@@ -97,8 +119,12 @@ const BaseCard = (base: IBase) => {
         );
       }}
     >
-      <div className="flex min-w-14 justify-center rounded-lg border bg-black p-4 text-white">
-        <h1>{base.name[0]?.toUpperCase() + base.name.slice(1, 2)}</h1>
+      <div
+        className={`flex min-w-14 justify-center rounded-lg ${avatarColor} p-4`}
+      >
+        <h1 className="text-sm font-semibold text-gray-700">
+          {base.name[0]?.toUpperCase() + base.name.slice(1, 2)}
+        </h1>
       </div>
       <div className="flex flex-col gap-y-2">
         {isEditing ? (

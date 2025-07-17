@@ -17,6 +17,7 @@ datasource db {
 model Base {
   id        String   @id @default(cuid())
   name      String
+  color     String   @default("black")
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   tables    Table[]

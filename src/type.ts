@@ -6,6 +6,7 @@ export interface IBase {
   name: string;
   createdAt: Date;
   userId: string;
+  color?: string;
 }
 
 export interface ISlugProp {

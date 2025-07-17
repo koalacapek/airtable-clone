@@ -16,6 +16,11 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
   const [open, setOpen] = useState(false);
   const utils = api.useUtils();
 
+  // Fetch base to get its color
+  const { data: base } = api.base.getById.useQuery({ id: baseId });
+  // Safe access color
+  const baseColor = (base as { color?: string } | undefined)?.color;
+
   // Fetch tables
   const { data: tables } = api.table.getAllByBase.useQuery({
     baseId,
@@ -66,7 +71,11 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
   return (
     <div className="w-full">
       <Tabs value={active ?? tables?.[0]?.id} onValueChange={setActive}>
-        <TabsList className="bg-orange-1 flex w-full justify-start overflow-x-auto rounded-none p-0">
+        <TabsList
+          className={`flex w-full justify-start overflow-x-auto rounded-none p-0 ${
+            baseColor ?? "bg-gray-100"
+          }`}
+        >
           {tables?.map((table, index) => (
             <TabsTrigger
               key={table.id}
