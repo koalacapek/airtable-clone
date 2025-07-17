@@ -8,6 +8,7 @@ import {
 } from "~/components/ui/popover";
 import { Button } from "~/components/ui/button";
 import type { ISearchTableButtonProps } from "~/type";
+import { api } from "~/trpc/react";
 
 const SearchTableButton = ({
   onUpdate,
@@ -20,11 +21,22 @@ const SearchTableButton = ({
 }: ISearchTableButtonProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [localSearchValue, setLocalSearchValue] = useState("");
+  const utils = api.useUtils();
 
   // Update search value when debounced value changes
   useEffect(() => {
-    onUpdate(localSearchValue.trim());
-  }, [localSearchValue, onUpdate]);
+    const run = async () => {
+      if (!activeTab) return;
+      if (localSearchValue.trim().length === 1) {
+        await utils.table.getTableWithDataInfinite.invalidate({
+          tableId: activeTab,
+        });
+      }
+
+      onUpdate(localSearchValue.trim());
+    };
+    void run();
+  }, [localSearchValue, onUpdate, activeTab, utils]);
 
   // reset search value when active tab or view changes and make sure the popover is closed
   useEffect(() => {
