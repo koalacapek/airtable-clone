@@ -138,13 +138,41 @@ const Table = ({
 
       const previousCells = utils.cell.getAll.getData({ tableId });
 
+      // Also cancel and snapshot infinite table data
+      await utils.table.getTableWithDataInfinite.cancel({ tableId });
+      const previousPages =
+        utils.table.getTableWithDataInfinite.getInfiniteData({
+          tableId,
+        });
+
+      // Optimistically patch cell list
       utils.cell.getAll.setData({ tableId }, (old) =>
         old?.map((cell) =>
           cell.id === cellId ? { ...cell, value: value?.trim() ?? "" } : cell,
         ),
       );
 
-      return { previousCells };
+      // Optimistically patch infinite pages
+      utils.table.getTableWithDataInfinite.setInfiniteData(
+        { tableId },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              rows: page.rows.map((row) => ({
+                ...row,
+                cells: row.cells.map((c) =>
+                  c.id === cellId ? { ...c, value: value?.trim() ?? "" } : c,
+                ),
+              })),
+            })),
+          };
+        },
+      );
+
+      return { previousCells, previousPages };
     },
 
     onError: (err, _input, context) => {
@@ -152,6 +180,12 @@ const Table = ({
         utils.cell.getAll.setData(
           { tableId: _input.tableId },
           context.previousCells,
+        );
+      }
+      if (context?.previousPages) {
+        utils.table.getTableWithDataInfinite.setInfiniteData(
+          { tableId: _input.tableId },
+          context.previousPages,
         );
       }
     },
