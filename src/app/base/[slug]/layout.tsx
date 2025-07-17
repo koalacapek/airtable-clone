@@ -6,7 +6,7 @@ export default function BaseLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { slug: string }; // <- plain string, no Promise
+  params: { slug: string };
 }) {
   const id = params.slug;
 

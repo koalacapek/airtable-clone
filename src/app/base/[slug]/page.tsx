@@ -4,9 +4,9 @@ import { redirect } from "next/navigation";
 import type { ISlugProp } from "~/type";
 import BaseContent from "~/app/_components/BaseContent";
 
-const BaseSlugPage = async (params: ISlugProp) => {
+const BaseSlugPage = async ({ params }: ISlugProp) => {
   const session = await auth();
-  const { slug: id } = await params.params;
+  const { slug: id } = params;
 
   if (!session) {
     redirect("/sign-in");
