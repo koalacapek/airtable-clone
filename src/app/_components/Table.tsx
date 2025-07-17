@@ -357,11 +357,22 @@ const Table = ({
                     );
 
                   // Check if this column is filtered
-                  const isFiltered =
-                    viewConditions?.filters &&
-                    Object.keys(viewConditions.filters).includes(
-                      column?.name ?? "",
-                    );
+                  const isFiltered = (() => {
+                    if (!viewConditions?.filters) return false;
+                    const f = viewConditions.filters as Record<
+                      string,
+                      unknown
+                    > & {
+                      logicalType?: string;
+                      conditions?: { column: string }[];
+                    };
+                    if (f.logicalType && Array.isArray(f.conditions)) {
+                      return f.conditions.some(
+                        (c) => c.column === column?.name,
+                      );
+                    }
+                    return Object.keys(f).includes(column?.name ?? "");
+                  })();
 
                   return (
                     <th
@@ -376,9 +387,13 @@ const Table = ({
                               : isNameHidden
                                 ? "left-16"
                                 : "w-32"
-                      } ${isSorted ? "bg-blue-100" : "bg-gray-100"} ${
-                        isFiltered ? "bg-yellow-100" : ""
-                      } ${isSorted && isFiltered ? "bg-green-100" : ""}`}
+                      } ${
+                        isSorted
+                          ? "bg-orange-1"
+                          : isFiltered
+                            ? "bg-green-50"
+                            : "bg-white"
+                      }`}
                     >
                       {flexRender(
                         header.column.columnDef.header,
@@ -434,11 +449,22 @@ const Table = ({
                       Object.keys(viewConditions.sort).includes(
                         column?.name ?? "",
                       );
-                    const isFiltered =
-                      viewConditions?.filters &&
-                      Object.keys(viewConditions.filters).includes(
-                        column?.name ?? "",
-                      );
+                    const isFiltered = (() => {
+                      if (!viewConditions?.filters) return false;
+                      const f = viewConditions.filters as Record<
+                        string,
+                        unknown
+                      > & {
+                        logicalType?: string;
+                        conditions?: { column: string }[];
+                      };
+                      if (f.logicalType && Array.isArray(f.conditions)) {
+                        return f.conditions.some(
+                          (c) => c.column === column?.name,
+                        );
+                      }
+                      return Object.keys(f).includes(column?.name ?? "");
+                    })();
 
                     // Find if this cell is a match
                     const isMatch = matchingCells?.some(
@@ -470,7 +496,7 @@ const Table = ({
                             : isMatch && !isCurrent
                               ? "bg-yellow-200 hover:bg-yellow-200"
                               : isSorted
-                                ? "bg-blue-50"
+                                ? "bg-orange-1"
                                 : isFiltered
                                   ? "bg-green-50"
                                   : "bg-white"

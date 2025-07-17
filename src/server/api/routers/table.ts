@@ -303,9 +303,9 @@ export const tableRouter = createTRPCRouter({
                 }
               } else {
                 if (sortDir === "ASC") {
-                  sql += ` AND (\n                    COALESCE(c0.value, '') > $${paramIndex} OR\n                    (COALESCE(c0.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})\n                  )`;
+                  sql += ` AND (\n                    LOWER(COALESCE(c0.value, '')) > LOWER($${paramIndex}) OR\n                    (LOWER(COALESCE(c0.value, '')) = LOWER($${paramIndex}) AND r.id > $${paramIndex + 1})\n                  )`;
                 } else {
-                  sql += ` AND (\n                    COALESCE(c0.value, '') < $${paramIndex} OR\n                    (COALESCE(c0.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})\n                  )`;
+                  sql += ` AND (\n                    LOWER(COALESCE(c0.value, '')) < LOWER($${paramIndex}) OR\n                    (LOWER(COALESCE(c0.value, '')) = LOWER($${paramIndex}) AND r.id > $${paramIndex + 1})\n                  )`;
                 }
               }
               params.push(cursor.value, cursor.id);
@@ -329,7 +329,7 @@ export const tableRouter = createTRPCRouter({
               if (column.type === "NUMBER") {
                 return `CAST(COALESCE(NULLIF(c${idx}.value, ''), '0') AS DECIMAL) ${dir}`;
               }
-              return `COALESCE(c${idx}.value, '') ${dir}`;
+              return `LOWER(COALESCE(c${idx}.value, '')) ${dir}`;
             },
           );
           orderClauses.push("r.id ASC");
