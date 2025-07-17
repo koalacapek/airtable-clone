@@ -10,7 +10,7 @@ export interface IBase {
 }
 
 export interface ISlugProp {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export interface ITableTabProps {
