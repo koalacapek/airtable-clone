@@ -155,14 +155,27 @@ const SortTableButton = ({
                     {input.sortBy ?? "Column"}
                   </SelectTrigger>
                   <SelectContent>
-                    {columns.map(
-                      (column) =>
-                        column.name !== "#" && (
+                    {(() => {
+                      // Exclude columns already selected in other sort inputs
+                      const usedColumns = sortInputs
+                        .filter((_, i) => i !== idx) // other rows only
+                        .map((s) => s.sortBy)
+                        .filter(Boolean) as string[];
+
+                      return columns
+                        .filter(
+                          (column) =>
+                            column.name !== "#" &&
+                            // keep the column if not used elsewhere or it's the one currently selected in this row
+                            (input.sortBy === column.name ||
+                              !usedColumns.includes(column.name)),
+                        )
+                        .map((column) => (
                           <SelectItem key={column.id} value={column.name}>
                             {column.name}
                           </SelectItem>
-                        ),
-                    )}
+                        ));
+                    })()}
                   </SelectContent>
                 </Select>
               </div>
