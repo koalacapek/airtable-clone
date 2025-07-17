@@ -233,6 +233,15 @@ const Table = ({
       );
   }, [matchingCells, allRows, tableMetadata]);
 
+  // Auto-scroll to the current matching row when currentMatchIndex changes
+  useEffect(() => {
+    if (!matchPositions.length) return;
+    const target = matchPositions[currentMatchIndex];
+    if (!target) return;
+    // Scroll using virtualizer to the row index
+    virtualizer.scrollToIndex(target.rowIdx, { align: "center" });
+  }, [currentMatchIndex, matchPositions, virtualizer]);
+
   const columns: ColumnDef<TableRow>[] = useMemo(() => {
     if (!tableMetadata) return [];
 
