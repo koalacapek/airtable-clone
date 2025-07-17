@@ -46,13 +46,25 @@ export const tableRouter = createTRPCRouter({
         });
       }
 
-      const count = await ctx.db.table.count({
+      // Determine default name: "Table N" where N is next integer not already used
+      const existingTables = await ctx.db.table.findMany({
         where: { baseId: input.baseId },
+        select: { name: true },
       });
+
+      const nextTableNumber = (() => {
+        const nums = existingTables
+          .map((t) => /^Table\s+(\d+)$/.exec(t.name ?? "")?.[1])
+          .filter(Boolean)
+          .map(Number);
+        return nums.length > 0
+          ? Math.max(...nums) + 1
+          : existingTables.length + 1;
+      })();
 
       const table = await ctx.db.table.create({
         data: {
-          name: input.name?.trim() ?? `Table ${count + 1}`,
+          name: input.name?.trim() ?? `Table ${nextTableNumber}`,
           baseId: input.baseId,
         },
       });

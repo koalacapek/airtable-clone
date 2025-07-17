@@ -76,14 +76,14 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
             baseColor ?? "bg-gray-100"
           }`}
         >
-          {tables?.map((table, index) => (
+          {tables?.map((table) => (
             <TabsTrigger
               key={table.id}
               value={table.id}
               className="text-gray-2 h-full max-w-fit rounded-none px-4 pt-3 pb-2 text-xs font-medium hover:cursor-pointer hover:bg-black/10 data-[state=active]:rounded-t-sm data-[state=active]:text-black"
             >
               <div className="flex items-center justify-center gap-2">
-                <span>Table {index + 1}</span>
+                <span>{table.name}</span>
 
                 {/* Dropdown */}
                 <DropdownMenu>

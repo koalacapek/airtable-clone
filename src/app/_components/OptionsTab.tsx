@@ -67,11 +67,6 @@ const OptionsTab = ({
     createBulkRows({ tableId: activeTab, count: 100000 });
   }, [activeTab, createBulkRows]);
 
-  const handleCreate10kRows = useCallback(() => {
-    if (!activeTab) return;
-    createBulkRows({ tableId: activeTab, count: 10000 });
-  }, [activeTab, createBulkRows]);
-
   const handleUpdateFilter = useCallback(
     (filters: Record<string, unknown>) => {
       if (activeView) {
@@ -120,21 +115,6 @@ const OptionsTab = ({
       {/* Filter, Sort, etc. */}
       <div className="flex items-center gap-x-3">
         {/* Visibility */}
-
-        <button
-          onClick={handleCreate10kRows}
-          disabled={isCreatingBulkRows}
-          className="flex items-center gap-x-1 rounded-sm p-2 hover:cursor-pointer hover:bg-gray-200/80 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isCreatingBulkRows ? (
-            <Spinner size={16} />
-          ) : (
-            <Plus strokeWidth={1.5} size={16} />
-          )}
-          <p className="text-xs">
-            {isCreatingBulkRows ? "Adding rows..." : "Add 10k rows"}
-          </p>
-        </button>
 
         <button
           onClick={handleCreate100kRows}
