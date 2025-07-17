@@ -14,7 +14,6 @@ const BaseNavbar = ({ baseId }: { baseId: string }) => {
 
   const searchParams = useSearchParams();
   const name = searchParams.get("name");
-  console.log(base?.color);
 
   return (
     <div>
