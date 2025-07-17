@@ -20,9 +20,7 @@ const BaseNavbar = ({ baseId }: { baseId: string }) => {
       <div className="border-gray-1 flex w-screen items-center justify-between border px-3 py-2">
         <div className="flex flex-2 items-center gap-x-2 pl-1">
           <div
-            className={`rounded-lg border border-black p-1.5 ${
-              base?.color ? `${base.color}` : ""
-            }`}
+            className={`rounded-lg p-1.5 ${base?.color ? `${base.color}` : ""}`}
           >
             <Image
               src="/airtable.svg"

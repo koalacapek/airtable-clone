@@ -1,14 +1,18 @@
+import type { ReactNode } from "react";
 import BaseNavbar from "~/app/_components/BaseNavbar";
 import BaseSidebar from "~/app/_components/BaseSidebar";
 
-export default function BaseLayout({
+type LayoutParams = Promise<{ slug: string }>;
+
+export default async function BaseLayout({
   children,
   params,
 }: {
-  children: React.ReactNode;
-  params: { slug: string };
+  children: ReactNode;
+  params: LayoutParams;
 }) {
-  const id = params.slug;
+  // Await the params promise to extract slug
+  const { slug: id } = await params;
 
   return (
     <div className="flex h-full">
