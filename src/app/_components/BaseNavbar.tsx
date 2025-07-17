@@ -5,9 +5,12 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { useState } from "react";
+import { api } from "~/trpc/react";
 
-const BaseNavbar = () => {
+const BaseNavbar = ({ baseId }: { baseId: string }) => {
   const [tab, setTab] = useState("data");
+
+  const { data: base } = api.base.getById.useQuery({ id: baseId });
 
   const searchParams = useSearchParams();
   const name = searchParams.get("name");
@@ -16,7 +19,9 @@ const BaseNavbar = () => {
     <div>
       <div className="border-gray-1 flex w-screen items-center justify-between border px-3 py-2">
         <div className="flex flex-2 items-center gap-x-2 pl-1">
-          <div className="rounded-lg border border-black p-1.5">
+          <div
+            className={`rounded-lg p-1.5 ${base?.color ? `${base.color}` : ""}`}
+          >
             <Image
               src="/airtable.svg"
               alt="Airtable logo"
@@ -24,7 +29,7 @@ const BaseNavbar = () => {
               height={22}
             />
           </div>
-          <h1 className="font-bold">{name}</h1>
+          <h1 className="font-bold">{base?.name ?? name}</h1>
         </div>
 
         {/* Middle Area  */}
@@ -36,7 +41,7 @@ const BaseNavbar = () => {
                   <TabsTrigger
                     key={tabValue}
                     value={tabValue}
-                    className="ring-offset-background focus-visible:ring-ring data-[state=active]:bg-background text-muted-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground relative inline-flex h-9 items-center justify-center rounded-none border-b-2 border-b-transparent bg-transparent px-4 py-1 pt-2 pb-3 text-xs whitespace-nowrap shadow-none transition-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-none"
+                    className="ring-offset-background focus-visible:ring-ring data-[state=active]:bg-background text-muted-foreground data-[state=active]:border-b-primary data-[state=active]:text-foreground relative inline-flex h-9 items-center justify-center rounded-none border-b-2 border-b-transparent bg-transparent px-4 py-1 pt-2 pb-3 text-xs whitespace-nowrap shadow-none transition-none hover:cursor-pointer focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-none"
                   >
                     {tabValue[0]!.toUpperCase() + tabValue.slice(1)}
                   </TabsTrigger>

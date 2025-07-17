@@ -46,13 +46,25 @@ export const tableRouter = createTRPCRouter({
         });
       }
 
-      const count = await ctx.db.table.count({
+      // Determine default name: "Table N" where N is next integer not already used
+      const existingTables = await ctx.db.table.findMany({
         where: { baseId: input.baseId },
+        select: { name: true },
       });
+
+      const nextTableNumber = (() => {
+        const nums = existingTables
+          .map((t) => /^Table\s+(\d+)$/.exec(t.name ?? "")?.[1])
+          .filter(Boolean)
+          .map(Number);
+        return nums.length > 0
+          ? Math.max(...nums) + 1
+          : existingTables.length + 1;
+      })();
 
       const table = await ctx.db.table.create({
         data: {
-          name: input.name?.trim() ?? `Table ${count + 1}`,
+          name: input.name?.trim() ?? `Table ${nextTableNumber}`,
           baseId: input.baseId,
         },
       });
@@ -291,9 +303,9 @@ export const tableRouter = createTRPCRouter({
                 }
               } else {
                 if (sortDir === "ASC") {
-                  sql += ` AND (\n                    COALESCE(c0.value, '') > $${paramIndex} OR\n                    (COALESCE(c0.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})\n                  )`;
+                  sql += ` AND (\n                    LOWER(COALESCE(c0.value, '')) > LOWER($${paramIndex}) OR\n                    (LOWER(COALESCE(c0.value, '')) = LOWER($${paramIndex}) AND r.id > $${paramIndex + 1})\n                  )`;
                 } else {
-                  sql += ` AND (\n                    COALESCE(c0.value, '') < $${paramIndex} OR\n                    (COALESCE(c0.value, '') = $${paramIndex} AND r.id > $${paramIndex + 1})\n                  )`;
+                  sql += ` AND (\n                    LOWER(COALESCE(c0.value, '')) < LOWER($${paramIndex}) OR\n                    (LOWER(COALESCE(c0.value, '')) = LOWER($${paramIndex}) AND r.id > $${paramIndex + 1})\n                  )`;
                 }
               }
               params.push(cursor.value, cursor.id);
@@ -317,7 +329,7 @@ export const tableRouter = createTRPCRouter({
               if (column.type === "NUMBER") {
                 return `CAST(COALESCE(NULLIF(c${idx}.value, ''), '0') AS DECIMAL) ${dir}`;
               }
-              return `COALESCE(c${idx}.value, '') ${dir}`;
+              return `LOWER(COALESCE(c${idx}.value, '')) ${dir}`;
             },
           );
           orderClauses.push("r.id ASC");
@@ -539,112 +551,57 @@ export const tableRouter = createTRPCRouter({
         where: { tableId },
       });
 
-      // Build the base query to find rows that match the filters
-      let rowIds: string[] = [];
-
+      // Use single raw SQL to fetch matching cells when filters are applied
       if (filters && Object.keys(filters).length > 0) {
-        // Check if it's the new filter structure
-        if (
-          filters.logicalType &&
-          filters.conditions &&
-          Array.isArray(filters.conditions)
-        ) {
-          // Use the new processFilters approach for advanced filters
-          let sql = `
-            SELECT DISTINCT r.id
-            FROM "Row" r
-            WHERE r."tableId" = $1
-          `;
+        let sql = `
+          SELECT c.id, c."rowId", c."columnId"
+          FROM "Row" r
+          JOIN "Cell" c ON c."rowId" = r.id
+          WHERE r."tableId" = $1
+        `;
 
-          const params: (string | number | null)[] = [tableId];
-          const paramIndex = 2;
+        const params: (string | number | null)[] = [tableId];
+        let paramIndex = 2;
 
-          const {
-            condition: filterCondition,
-            newParamIndex,
-            moreParams,
-          } = processFilters(filters, columns, paramIndex);
-
-          if (filterCondition) {
-            sql += ` AND ${filterCondition}`;
-            params.push(...moreParams);
-          }
-
-          // Run the filter query to get matching row IDs
-          const result = await ctx.db.$queryRawUnsafe(sql, ...params);
-          rowIds = (result as { id: string }[]).map((r) => r.id);
-        } else {
-          // Use the legacy JOIN-based filtering logic
-          let sql = `
-            SELECT r.id
-            FROM "Row" r
-          `;
-
-          const params: (string | number | null)[] = [];
-          let paramIndex = 1;
-
-          // Filter JOINs
-          Object.entries(filters).forEach(([columnName, _], index) => {
-            const column = columns.find((col) => col.name === columnName);
-            if (!column) return;
-
-            const alias = `c${index}`;
-            sql += ` LEFT JOIN "Cell" ${alias} ON r.id = ${alias}."rowId" AND ${alias}."columnId" = $${paramIndex++}`;
-            params.push(column.id);
-          });
-
-          // WHERE base
-          sql += ` WHERE r."tableId" = $${paramIndex++}`;
-          params.push(tableId);
-
-          // Filter conditions
-          Object.entries(filters).forEach(
-            ([columnName, filterConfig], index) => {
-              const column = columns.find((col) => col.name === columnName);
-              if (!column) return;
-
-              const alias = `c${index}`;
-              const filterConfigsArray = Array.isArray(filterConfig)
-                ? (filterConfig as { op: string; value?: string }[])
-                : [filterConfig as { op: string; value?: string }];
-
-              filterConfigsArray.forEach(({ op, value }) => {
-                if (op === "is_empty") {
-                  sql += ` AND ${alias}.id IS NULL`;
-                } else if (op === "is_not_empty") {
-                  sql += ` AND ${alias}.id IS NOT NULL`;
-                } else if (op === "contains") {
-                  sql += ` AND ${alias}.value ILIKE $${paramIndex++}`;
-                  params.push(`%${value}%`);
-                } else if (op === "not_contains") {
-                  sql += ` AND (${alias}.id IS NULL OR ${alias}.value NOT ILIKE $${paramIndex++})`;
-                  params.push(`%${value}%`);
-                } else if (op === "equal") {
-                  sql += ` AND ${alias}.value = $${paramIndex++}`;
-                  params.push(value ?? "");
-                } else if (op === "greater") {
-                  sql += ` AND ${alias}.value > $${paramIndex++}`;
-                  params.push(value ?? "");
-                } else if (op === "smaller") {
-                  sql += ` AND ${alias}.value < $${paramIndex++}`;
-                  params.push(value ?? "");
-                }
-              });
-            },
-          );
-
-          // Run the filter query to get matching row IDs
-          const result = await ctx.db.$queryRawUnsafe(sql, ...params);
-          rowIds = (result as { id: string }[]).map((r) => r.id);
+        // Append filter conditions via helper
+        const { condition: filterCondition, moreParams } = processFilters(
+          filters,
+          columns,
+          paramIndex,
+        );
+        if (filterCondition) {
+          sql += ` AND ${filterCondition}`;
+          params.push(...moreParams);
+          paramIndex += moreParams.length;
         }
+
+        // Exclude hidden columns
+        if (hiddenColumns.length > 0) {
+          const placeholders = hiddenColumns
+            .map((_, idx) => `$${paramIndex + idx}`)
+            .join(", ");
+          sql += ` AND c."columnId" NOT IN (${placeholders})`;
+          params.push(...hiddenColumns);
+          paramIndex += hiddenColumns.length;
+        }
+
+        // Search value match (case-insensitive)
+        sql += ` AND c.value ILIKE $${paramIndex}`;
+        params.push(`%${searchValue.trim()}%`);
+
+        // Execute query
+        const cells = await ctx.db.$queryRawUnsafe<
+          { id: string; rowId: string; columnId: string }[]
+        >(sql, ...params);
+
+        return cells;
       }
 
-      // Now find cells that match the search value within the filtered rows
+      // If no filters, proceed with existing simple query
       const cells = await ctx.db.cell.findMany({
         where: {
           row: {
             tableId,
-            ...(rowIds.length > 0 && { id: { in: rowIds } }),
           },
           columnId: {
             notIn: hiddenColumns,

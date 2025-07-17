@@ -16,6 +16,11 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
   const [open, setOpen] = useState(false);
   const utils = api.useUtils();
 
+  // Fetch base to get its color
+  const { data: base } = api.base.getById.useQuery({ id: baseId });
+  // Safe access color
+  const baseColor = (base as { color?: string } | undefined)?.color;
+
   // Fetch tables
   const { data: tables } = api.table.getAllByBase.useQuery({
     baseId,
@@ -66,15 +71,19 @@ const TableTabs = ({ baseId, active, setActive }: ITableTabProps) => {
   return (
     <div className="w-full">
       <Tabs value={active ?? tables?.[0]?.id} onValueChange={setActive}>
-        <TabsList className="bg-orange-1 flex w-full justify-start overflow-x-auto rounded-none p-0">
-          {tables?.map((table, index) => (
+        <TabsList
+          className={`flex w-full justify-start overflow-x-auto rounded-none p-0 ${
+            baseColor ?? "bg-gray-100"
+          }`}
+        >
+          {tables?.map((table) => (
             <TabsTrigger
               key={table.id}
               value={table.id}
               className="text-gray-2 h-full max-w-fit rounded-none px-4 pt-3 pb-2 text-xs font-medium hover:cursor-pointer hover:bg-black/10 data-[state=active]:rounded-t-sm data-[state=active]:text-black"
             >
               <div className="flex items-center justify-center gap-2">
-                <span>Table {index + 1}</span>
+                <span>{table.name}</span>
 
                 {/* Dropdown */}
                 <DropdownMenu>

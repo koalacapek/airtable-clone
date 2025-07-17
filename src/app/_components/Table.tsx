@@ -158,15 +158,25 @@ const Table = ({
 
     onSettled: (_data, _err, _input) => {
       // Only if table has some kind of sort, it will refresh the table
-      if (viewConditions?.sort && Object.keys(viewConditions.sort).length > 0) {
-        void utils.table.getTableWithDataInfinite.invalidate({
-          tableId: _input.tableId,
-        });
-      } else {
-        void utils.cell.getAll.invalidate({
-          tableId: _input.tableId,
-        });
-      }
+      // if (viewConditions?.sort && Object.keys(viewConditions.sort).length > 0) {
+      //   void utils.table.getTableWithDataInfinite.invalidate({
+      //     tableId: _input.tableId,
+      //   });
+      // } else if (
+      //   viewConditions?.filters &&
+      //   Object.keys(viewConditions.filters).length > 0
+      // ) {
+      //   void utils.table.getTableWithDataInfinite.invalidate({
+      //     tableId: _input.tableId,
+      //   });
+      // } else {
+      //   // void utils.cell.getAll.invalidate({
+      //   //   tableId: _input.tableId,
+      //   // });
+      // }
+      void utils.table.getTableWithDataInfinite.invalidate({
+        tableId: _input.tableId,
+      });
     },
   });
 
@@ -232,6 +242,37 @@ const Table = ({
         a.rowIdx !== b.rowIdx ? a.rowIdx - b.rowIdx : a.colIdx - b.colIdx,
       );
   }, [matchingCells, allRows, tableMetadata]);
+
+  // Auto-scroll to the current matching row when currentMatchIndex changes
+  useEffect(() => {
+    if (!matchPositions.length) return;
+
+    const target = matchPositions[currentMatchIndex];
+    if (!target) {
+      if (hasNextPage) {
+        void fetchNextPage();
+        return;
+      }
+      return;
+    }
+
+    // Row not yet in the local cache → load another page first
+    if (target.rowIdx >= allRows.length && hasNextPage) {
+      console.log("Loading next page");
+      void fetchNextPage(); // effect will fire again after data arrives
+      return;
+    }
+
+    // Row is present → scroll to it
+    virtualizer.scrollToIndex(target.rowIdx, { align: "center" });
+  }, [
+    currentMatchIndex,
+    matchPositions,
+    allRows.length, // re-run when more rows arrive
+    hasNextPage,
+    fetchNextPage,
+    virtualizer,
+  ]);
 
   const columns: ColumnDef<TableRow>[] = useMemo(() => {
     if (!tableMetadata) return [];
@@ -326,11 +367,22 @@ const Table = ({
                     );
 
                   // Check if this column is filtered
-                  const isFiltered =
-                    viewConditions?.filters &&
-                    Object.keys(viewConditions.filters).includes(
-                      column?.name ?? "",
-                    );
+                  const isFiltered = (() => {
+                    if (!viewConditions?.filters) return false;
+                    const f = viewConditions.filters as Record<
+                      string,
+                      unknown
+                    > & {
+                      logicalType?: string;
+                      conditions?: { column: string }[];
+                    };
+                    if (f.logicalType && Array.isArray(f.conditions)) {
+                      return f.conditions.some(
+                        (c) => c.column === column?.name,
+                      );
+                    }
+                    return Object.keys(f).includes(column?.name ?? "");
+                  })();
 
                   return (
                     <th
@@ -345,9 +397,13 @@ const Table = ({
                               : isNameHidden
                                 ? "left-16"
                                 : "w-32"
-                      } ${isSorted ? "bg-blue-100" : "bg-gray-100"} ${
-                        isFiltered ? "bg-yellow-100" : ""
-                      } ${isSorted && isFiltered ? "bg-green-100" : ""}`}
+                      } ${
+                        isSorted
+                          ? "bg-orange-1"
+                          : isFiltered
+                            ? "bg-green-50"
+                            : "bg-white"
+                      }`}
                     >
                       {flexRender(
                         header.column.columnDef.header,
@@ -403,11 +459,22 @@ const Table = ({
                       Object.keys(viewConditions.sort).includes(
                         column?.name ?? "",
                       );
-                    const isFiltered =
-                      viewConditions?.filters &&
-                      Object.keys(viewConditions.filters).includes(
-                        column?.name ?? "",
-                      );
+                    const isFiltered = (() => {
+                      if (!viewConditions?.filters) return false;
+                      const f = viewConditions.filters as Record<
+                        string,
+                        unknown
+                      > & {
+                        logicalType?: string;
+                        conditions?: { column: string }[];
+                      };
+                      if (f.logicalType && Array.isArray(f.conditions)) {
+                        return f.conditions.some(
+                          (c) => c.column === column?.name,
+                        );
+                      }
+                      return Object.keys(f).includes(column?.name ?? "");
+                    })();
 
                     // Find if this cell is a match
                     const isMatch = matchingCells?.some(
@@ -439,7 +506,7 @@ const Table = ({
                             : isMatch && !isCurrent
                               ? "bg-yellow-200 hover:bg-yellow-200"
                               : isSorted
-                                ? "bg-blue-50"
+                                ? "bg-orange-1"
                                 : isFiltered
                                   ? "bg-green-50"
                                   : "bg-white"

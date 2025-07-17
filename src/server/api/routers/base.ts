@@ -13,9 +13,26 @@ export const baseRouter = createTRPCRouter({
     const userId = ctx.session.user.id;
     const name = "Untitled Base";
 
+    // Pastel color palette for bases
+    const pastelColors = [
+      "bg-red-200/80",
+      "bg-orange-200/80",
+      "bg-amber-200/80",
+      "bg-lime-200/80",
+      "bg-emerald-200/80",
+      "bg-cyan-200/80",
+      "bg-sky-200/80",
+      "bg-indigo-200/80",
+      "bg-fuchsia-200/80",
+      "bg-rose-200/80",
+    ] as const;
+
+    const color = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+
     const base = await ctx.db.base.create({
       data: {
         name,
+        color,
         userId,
         tables: {
           create: [
