@@ -236,11 +236,33 @@ const Table = ({
   // Auto-scroll to the current matching row when currentMatchIndex changes
   useEffect(() => {
     if (!matchPositions.length) return;
+
     const target = matchPositions[currentMatchIndex];
-    if (!target) return;
-    // Scroll using virtualizer to the row index
+    if (!target) {
+      if (hasNextPage) {
+        void fetchNextPage();
+        return;
+      }
+      return;
+    }
+
+    // Row not yet in the local cache → load another page first
+    if (target.rowIdx >= allRows.length && hasNextPage) {
+      console.log("Loading next page");
+      void fetchNextPage(); // effect will fire again after data arrives
+      return;
+    }
+
+    // Row is present → scroll to it
     virtualizer.scrollToIndex(target.rowIdx, { align: "center" });
-  }, [currentMatchIndex, matchPositions, virtualizer]);
+  }, [
+    currentMatchIndex,
+    matchPositions,
+    allRows.length, // re-run when more rows arrive
+    hasNextPage,
+    fetchNextPage,
+    virtualizer,
+  ]);
 
   const columns: ColumnDef<TableRow>[] = useMemo(() => {
     if (!tableMetadata) return [];
