@@ -571,11 +571,11 @@ export const tableRouter = createTRPCRouter({
           const params: (string | number | null)[] = [tableId];
           const paramIndex = 2;
 
-          const {
-            condition: filterCondition,
-            newParamIndex,
-            moreParams,
-          } = processFilters(filters, columns, paramIndex);
+          const { condition: filterCondition, moreParams } = processFilters(
+            filters,
+            columns,
+            paramIndex,
+          );
 
           if (filterCondition) {
             sql += ` AND ${filterCondition}`;
