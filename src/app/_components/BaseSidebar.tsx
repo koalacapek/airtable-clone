@@ -14,6 +14,7 @@ import {
 
 const BaseSidebar = () => {
   const { data: session } = useSession();
+
   const router = useRouter();
 
   return (
