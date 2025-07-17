@@ -651,6 +651,11 @@ export const tableRouter = createTRPCRouter({
         }
       }
 
+      // If filters were provided but no rows matched, we can return early
+      if (filters && Object.keys(filters).length > 0 && rowIds.length === 0) {
+        return [];
+      }
+
       // Now find cells that match the search value within the filtered rows
       const cells = await ctx.db.cell.findMany({
         where: {
