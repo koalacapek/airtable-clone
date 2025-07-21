@@ -135,3 +135,7 @@ export interface IAddColumnPopoverProps {
   onSubmit: () => void;
   isCreating?: boolean;
 }
+
+export type BaseCardProps = IBase & {
+  variant?: "grid" | "list";
+};

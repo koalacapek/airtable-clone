@@ -12,13 +12,9 @@ import {
 import { Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "~/trpc/react";
-import type { IBase } from "~/type";
+import type { BaseCardProps } from "~/type";
 
 dayjs.extend(relativeTime);
-
-type BaseCardProps = IBase & {
-  variant?: "grid" | "list";
-};
 
 const BaseCard = (base: BaseCardProps) => {
   const [isEditing, setIsEditing] = useState(false);

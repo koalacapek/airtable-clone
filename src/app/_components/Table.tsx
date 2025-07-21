@@ -17,7 +17,7 @@ import type { Cell, ITableProps, TableRow } from "~/type";
 import Spinner from "./Spinner";
 import CellComponent from "./Cell";
 import { Plus } from "lucide-react";
-import { AlignLeft, Hash, ALargeSmall, PersonStanding } from "lucide-react";
+import { Hash, ALargeSmall, PersonStanding } from "lucide-react";
 
 import AddColumnPopover from "./AddColumnPopover";
 
