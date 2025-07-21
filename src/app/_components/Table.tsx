@@ -434,7 +434,7 @@ const Table = ({
                     </th>
                   );
                 })}
-                <th className="sticky top-0 w-12 border-t border-r border-b bg-gray-100 p-2 text-left">
+                <th className="sticky top-0 w-12 border-b p-2 text-left">
                   <AddColumnPopover
                     newColumnName={newColumnName}
                     setNewColumnName={setNewColumnName}
