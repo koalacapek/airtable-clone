@@ -112,7 +112,7 @@ const BaseCard = (base: BaseCardProps) => {
   const isList = base.variant === "list";
 
   const infoContainerClass = isList
-    ? "flex items-center gap-x-6"
+    ? "flex items-center justify-around gap-x-6"
     : "flex flex-col gap-y-2";
 
   return (
@@ -130,9 +130,9 @@ const BaseCard = (base: BaseCardProps) => {
       }}
     >
       <div
-        className={`flex min-w-14 justify-center rounded-lg ${avatarColor} p-4`}
+        className={`${isList ? "min-w-8 rounded-md p-2 text-xs" : "min-w-14 rounded-lg p-4 text-sm"} flex justify-center ${avatarColor} `}
       >
-        <h1 className="text-sm font-semibold text-gray-700">
+        <h1 className="font-semibold text-gray-700">
           {base.name[0]?.toUpperCase() + base.name.slice(1, 2)}
         </h1>
       </div>
@@ -149,7 +149,9 @@ const BaseCard = (base: BaseCardProps) => {
             className="w-full rounded border p-1 text-xs"
           />
         ) : (
-          <h2 className="max-w-[10rem] truncate overflow-hidden text-xs whitespace-nowrap">
+          <h2
+            className={`${isList ? "w-[10rem]" : "max-w-[10rem]"} truncate overflow-hidden text-xs whitespace-nowrap`}
+          >
             {newName}
           </h2>
         )}
