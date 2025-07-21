@@ -3,13 +3,13 @@
 import { api } from "~/trpc/react";
 import BaseCard from "./BaseCard";
 import Spinner from "./Spinner";
-import { LayoutGrid, List } from "lucide-react";
+import { Grid2X2, List } from "lucide-react";
 import { useState } from "react";
 
 const BaseList = () => {
   const { data: bases, isLoading } = api.base.getAll.useQuery();
 
-  // Toggle between grid and list view
+  // Toggle between gridGrid2X2 and list view
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   if (isLoading) {
@@ -39,18 +39,18 @@ const BaseList = () => {
     <>
       {/* Toggle Buttons */}
       <div className="mb-3 flex justify-end gap-2">
-        <button
-          onClick={() => setViewMode("grid")}
-          className={`rounded-md border p-2 transition-colors hover:bg-gray-200 ${viewMode === "grid" ? "bg-gray-200" : "bg-white"}`}
-        >
-          <LayoutGrid size={16} />
-        </button>
-        <button
+        <div
           onClick={() => setViewMode("list")}
-          className={`rounded-md border p-2 transition-colors hover:bg-gray-200 ${viewMode === "list" ? "bg-gray-200" : "bg-white"}`}
+          className={`rounded-md border p-2 transition-colors hover:cursor-pointer hover:bg-gray-200 ${viewMode === "list" ? "bg-gray-200" : "bg-white"}`}
         >
-          <List size={16} />
-        </button>
+          <List strokeWidth={1.5} size={16} />
+        </div>
+        <div
+          onClick={() => setViewMode("grid")}
+          className={`rounded-md border p-2 transition-colors hover:cursor-pointer hover:bg-gray-200 ${viewMode === "grid" ? "bg-gray-200" : "bg-white"}`}
+        >
+          <Grid2X2 strokeWidth={1.5} size={16} />
+        </div>
       </div>
 
       <div className={containerClass}>
