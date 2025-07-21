@@ -17,6 +17,7 @@ import type { Cell, ITableProps, TableRow } from "~/type";
 import Spinner from "./Spinner";
 import CellComponent from "./Cell";
 import { Plus } from "lucide-react";
+import { AlignLeft, Hash, ALargeSmall, PersonStanding } from "lucide-react";
 
 import AddColumnPopover from "./AddColumnPopover";
 
@@ -284,9 +285,26 @@ const Table = ({
     return tableMetadata.columns.map((col) => {
       const isReadOnly = col.name === "#";
 
+      // Choose an icon based on column type
+      const IconComponent = (() => {
+        switch (col.name) {
+          case "Name":
+            return ALargeSmall;
+          case "Age":
+            return PersonStanding;
+          default:
+            return Hash;
+        }
+      })();
+
       return {
         accessorKey: col.name,
-        header: () => <div>{col.name || "Unnamed"}</div>,
+        header: () => (
+          <div className="text-gray-2 flex items-center gap-2">
+            {col.name !== "#" && <IconComponent size={16} />}
+            {col.name || "Unnamed"}
+          </div>
+        ),
         cell: ({ row }: { row: Row<TableRow> }) => {
           const cellData: Cell = row.getValue(col.name);
           const column = tableMetadata.columns.find((c) => c.name === col.name);
