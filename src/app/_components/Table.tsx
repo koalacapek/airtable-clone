@@ -544,6 +544,24 @@ const Table = ({
                 </tr>
               );
             })}
+
+            {/* Inline "Add row" at the end of table */}
+            <tr>
+              <td
+                colSpan={columns.length + 1}
+                onClick={handleAddRow}
+                className="bg-white p-2 text-left text-sm hover:cursor-pointer hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isCreatingRow ? (
+                  <div className="flex items-center gap-2">
+                    <Spinner size={16} />
+                    <span>Adding row...</span>
+                  </div>
+                ) : (
+                  <Plus strokeWidth={1.5} size={16} />
+                )}
+              </td>
+            </tr>
             {paddingBottom > 0 && (
               <tr>
                 <td style={{ height: `${paddingBottom}px` }} />
