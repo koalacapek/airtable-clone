@@ -107,7 +107,7 @@ const ViewsSidebar = ({
     <div
       className={`transition-all duration-300 ease-in-out ${
         openView
-          ? "w-64 translate-x-0 border p-4 pt-2 opacity-100"
+          ? "w-64 translate-x-0 border border-t-0 p-4 pt-2 opacity-100"
           : "pointer-events-none w-0 -translate-x-full opacity-0"
       }`}
     >

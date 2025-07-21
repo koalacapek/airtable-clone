@@ -93,7 +93,7 @@ const OptionsTab = ({
   );
 
   return (
-    <div className="flex w-full justify-between p-2 pe-4 pl-5">
+    <div className="flex w-full justify-between border-b border-gray-200 p-2 pe-4 pl-5">
       {/* Grid */}
       <div className="flex items-center gap-x-4">
         <div

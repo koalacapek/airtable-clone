@@ -65,6 +65,10 @@ const Table = ({
     },
   );
 
+  const { data: totalRows } = api.table.getTotalRows.useQuery({
+    tableId: activeTab!,
+  });
+
   // Flatten all rows from all pages
   const allRows = useMemo(() => {
     if (!infiniteData?.pages) return [];
@@ -162,7 +166,7 @@ const Table = ({
       //   void utils.table.getTableWithDataInfinite.invalidate({
       //     tableId: _input.tableId,
       //   });
-      // } else if (
+      // } else if (e
       //   viewConditions?.filters &&
       //   Object.keys(viewConditions.filters).length > 0
       // ) {
@@ -334,13 +338,13 @@ const Table = ({
       : 0;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
       <div
         ref={scrollRef}
         className="flex-1 overflow-auto"
         onScroll={(e) => handleScroll(e.currentTarget)}
       >
-        <table className="w-max border-separate border-spacing-0 border border-gray-200 text-sm">
+        <table className="w-max border-separate border-spacing-0 border border-t-0 border-gray-200 text-sm">
           <thead className="sticky z-40 border">
             {tableInstance.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
@@ -387,7 +391,7 @@ const Table = ({
                   return (
                     <th
                       key={header.id}
-                      className={`sticky top-0 z-0 border-t border-r border-b p-2 text-left ${
+                      className={`sticky top-0 z-0 border-r border-b p-2 text-left font-normal ${
                         isRowNumberColumn
                           ? "left-0 z-50 w-16"
                           : isNameColumn
@@ -546,25 +550,28 @@ const Table = ({
         </table>
       </div>
 
-      {/* Sticky Add Row Button */}
-      <div className="border-t border-gray-200 bg-white">
-        <button
-          onClick={handleAddRow}
-          disabled={isCreatingRow}
-          className="w-full p-3 text-left text-sm hover:cursor-pointer hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isCreatingRow ? (
-            <div className="flex items-center gap-2">
-              <Spinner size={16} />
-              <span>Adding row...</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Plus strokeWidth={1.5} size={16} />
-              <span>Add row</span>
-            </div>
-          )}
-        </button>
+      {/* Floating Add Row Button */}
+      <button
+        onClick={handleAddRow}
+        disabled={isCreatingRow}
+        className="absolute bottom-7 left-4 z-99 flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm shadow hover:cursor-pointer hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {isCreatingRow ? (
+          <div className="flex items-center gap-2">
+            <Spinner size={16} />
+            <span>Adding...</span>
+          </div>
+        ) : (
+          <>
+            <Plus strokeWidth={1.5} size={16} />
+            <span>Add row</span>
+          </>
+        )}
+      </button>
+      <div className="border-t border-gray-200 bg-white p-3 py-2">
+        <p className="text-xs">
+          {totalRows == 1 ? "1 record" : `${totalRows} records`}
+        </p>
       </div>
     </div>
   );

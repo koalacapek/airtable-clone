@@ -619,4 +619,13 @@ export const tableRouter = createTRPCRouter({
       });
       return cells;
     }),
+
+  getTotalRows: protectedProcedure
+    .input(z.object({ tableId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const rows = await ctx.db.row.count({
+        where: { tableId: input.tableId },
+      });
+      return rows;
+    }),
 });
