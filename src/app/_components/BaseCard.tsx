@@ -48,7 +48,7 @@ const BaseCard = (base: BaseCardProps) => {
     if (isEditing) {
       setTimeout(() => {
         inputRef.current?.focus();
-      }, 200);
+      }, 300);
     }
   }, [isEditing]);
 
@@ -149,7 +149,9 @@ const BaseCard = (base: BaseCardProps) => {
             className="w-full rounded border p-1 text-xs"
           />
         ) : (
-          <h2 className="text-xs">{newName}</h2>
+          <h2 className="max-w-[10rem] truncate overflow-hidden text-xs whitespace-nowrap">
+            {newName}
+          </h2>
         )}
         <p className="text-xs text-gray-500">
           Created {dayjs(base.createdAt).fromNow()}
