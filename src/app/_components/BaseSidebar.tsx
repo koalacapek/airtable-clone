@@ -70,7 +70,7 @@ const BaseSidebar = () => {
           <DropdownMenuContent>
             <DropdownMenuItem>
               <button
-                className="flex w-full items-center gap-x-3"
+                className="flex w-full items-center gap-x-3 hover:cursor-pointer"
                 onClick={() => signOut()}
               >
                 <LogOut size={12} strokeWidth={1.5} />

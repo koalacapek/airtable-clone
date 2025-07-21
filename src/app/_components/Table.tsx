@@ -554,7 +554,7 @@ const Table = ({
       <button
         onClick={handleAddRow}
         disabled={isCreatingRow}
-        className="absolute bottom-7 left-4 z-99 flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm shadow hover:cursor-pointer hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+        className="absolute bottom-7 left-4 z-99 flex items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm shadow duration-200 hover:cursor-pointer hover:bg-gray-200 hover:transition-colors disabled:cursor-not-allowed disabled:opacity-50"
       >
         {isCreatingRow ? (
           <div className="flex items-center gap-2">
