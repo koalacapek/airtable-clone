@@ -1,12 +1,16 @@
-// _components/BaseList.tsx
 "use client";
 
 import { api } from "~/trpc/react";
 import BaseCard from "./BaseCard";
 import Spinner from "./Spinner";
+import { LayoutGrid, List } from "lucide-react";
+import { useState } from "react";
 
 const BaseList = () => {
   const { data: bases, isLoading } = api.base.getAll.useQuery();
+
+  // Toggle between grid and list view
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   if (isLoading) {
     return (
@@ -26,12 +30,35 @@ const BaseList = () => {
     );
   }
 
+  const containerClass =
+    viewMode === "grid"
+      ? "grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+      : "flex flex-col";
+
   return (
-    <div className="grid grid-cols-1 gap-4 p-10 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-      {bases?.map((base) => (
-        <BaseCard key={base.id} {...base} />
-      ))}
-    </div>
+    <>
+      {/* Toggle Buttons */}
+      <div className="mb-3 flex justify-end gap-2">
+        <button
+          onClick={() => setViewMode("grid")}
+          className={`rounded-md border p-2 transition-colors hover:bg-gray-200 ${viewMode === "grid" ? "bg-gray-200" : "bg-white"}`}
+        >
+          <LayoutGrid size={16} />
+        </button>
+        <button
+          onClick={() => setViewMode("list")}
+          className={`rounded-md border p-2 transition-colors hover:bg-gray-200 ${viewMode === "list" ? "bg-gray-200" : "bg-white"}`}
+        >
+          <List size={16} />
+        </button>
+      </div>
+
+      <div className={containerClass}>
+        {bases?.map((base) => (
+          <BaseCard key={base.id} {...base} variant={viewMode} />
+        ))}
+      </div>
+    </>
   );
 };
 

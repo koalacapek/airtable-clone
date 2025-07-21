@@ -10,7 +10,8 @@ export default async function HomePage() {
   if (!session) redirect("/sign-in");
 
   return (
-    <main className="flex h-full flex-col bg-gray-100">
+    <main className="flex h-full flex-col gap-y-5 bg-gray-100 px-12 py-9">
+      <h1 className="text-2xl font-bold">Home</h1>
       <BaseList />
     </main>
   );

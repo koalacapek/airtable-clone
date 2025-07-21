@@ -16,7 +16,11 @@ import type { IBase } from "~/type";
 
 dayjs.extend(relativeTime);
 
-const BaseCard = (base: IBase) => {
+type BaseCardProps = IBase & {
+  variant?: "grid" | "list";
+};
+
+const BaseCard = (base: BaseCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState(base.name);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -109,10 +113,20 @@ const BaseCard = (base: IBase) => {
   };
 
   const router = useRouter();
+  const isList = base.variant === "list";
+
+  const infoContainerClass = isList
+    ? "flex items-center gap-x-6"
+    : "flex flex-col gap-y-2";
+
   return (
     <div
       key={base.id}
-      className="group flex items-center gap-x-3 rounded-lg bg-white p-5 shadow transition-shadow hover:cursor-pointer hover:shadow-lg"
+      className={`group flex items-center gap-x-3 ${
+        isList
+          ? "border-b px-2 py-3 hover:bg-gray-50"
+          : "rounded-lg bg-white p-5 shadow transition-shadow hover:shadow-lg"
+      } hover:cursor-pointer`}
       onClick={() => {
         void router.push(
           `/base/${base.id}?name=${encodeURIComponent(base.name)}`,
@@ -126,7 +140,7 @@ const BaseCard = (base: IBase) => {
           {base.name[0]?.toUpperCase() + base.name.slice(1, 2)}
         </h1>
       </div>
-      <div className="flex flex-col gap-y-2">
+      <div className={infoContainerClass}>
         {isEditing ? (
           <input
             ref={inputRef}
