@@ -617,6 +617,8 @@ export const tableRouter = createTRPCRouter({
           columnId: true,
         },
       });
+
+      // after we
       return cells;
     }),
 

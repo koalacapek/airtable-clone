@@ -26,6 +26,20 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
   >([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [openView, setOpenView] = useState(true);
+  const utils = api.useUtils();
+
+  const { mutate: updateView } = api.view.update.useMutation({
+    onSuccess: async () => {
+      // Invalidate all table data queries for this table to ensure UI updates
+      // We need to invalidate all possible parameter combinations
+      await utils.table.getTableWithDataInfinite.invalidate();
+      await utils.table.getTableMetadata.invalidate({ tableId: activeTab! });
+      // Also invalidate the view queries to ensure the sidebar updates
+      if (activeTab) {
+        await utils.view.getAllByTable.invalidate({ tableId: activeTab });
+      }
+    },
+  });
 
   // Load persisted state from localStorage on mount
   useEffect(() => {
@@ -72,9 +86,38 @@ const BaseContent = ({ baseId }: { baseId: string }) => {
     { enabled: !!activeTab && !!searchValue && searchValue.trim() !== "" },
   );
 
+  // {"conditions":[{"value":"ro","column":"fsdf","operator":"contains"},{"value":"300","column":"Age","operator":"smaller","logicalOperator":"AND"},{"value":"Mrs. Sherry Denesik-Grady","column":"sdfdsf","operator":"contains","logicalOperator":"AND"}],"logicalType":"AND"}
   useEffect(() => {
     setMatchingCells(cells ?? []);
-  }, [cells]);
+    const handleRefetchMatchingCells = async () => {
+      updateView({
+        id: activeView!,
+        filters: {
+          conditions: [
+            { value: `${searchValue}`, column: "Name", operator: "contains" },
+          ],
+          logicalType: "AND",
+        },
+      });
+
+      // try {
+      //   await util.table.getTableWithDataInfinite.invalidate({
+      //     tableId: activeTab!,
+      //     filters: {
+      //       condition: [
+      //         { value: `${searchValue}`, column: "Name", operator: "contains" },
+      //       ],
+      //     },
+      //   });
+      // } catch {
+      //   console.error("Erorr while refetching");
+      // } finally {
+      //   console.log("done");
+      // }
+    };
+
+    handleRefetchMatchingCells().catch(console.error);
+  }, [cells, activeTab, searchValue, updateView, activeView]);
 
   useEffect(() => {
     // Reset current match index when search changes or no matches
